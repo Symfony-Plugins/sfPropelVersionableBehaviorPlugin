@@ -28,7 +28,7 @@
 
    <dir name="config">
      <file name="config.php" role="data" />
-     <file name="schema.xml" role="data" />
+     <file name="schema.yml" role="data" />
    </dir>
 
    <dir name="lib">

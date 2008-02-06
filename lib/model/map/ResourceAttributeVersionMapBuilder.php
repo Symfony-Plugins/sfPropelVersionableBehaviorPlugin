@@ -1,44 +1,44 @@
 <?php
 
 
-	
+
 class ResourceAttributeVersionMapBuilder {
 
 	
-	const CLASS_NAME = 'plugins.sfPropelVersionableBehaviorPlugin.lib.model.map.ResourceAttributeVersionMapBuilder';	
-
-    
-    private $dbMap;
+	const CLASS_NAME = 'plugins.sfPropelVersionableBehaviorPlugin.lib.model.map.ResourceAttributeVersionMapBuilder';
 
 	
-    public function isBuilt()
-    {
-        return ($this->dbMap !== null);
-    }
+	private $dbMap;
 
 	
-    public function getDatabaseMap()
-    {
-        return $this->dbMap;
-    }
+	public function isBuilt()
+	{
+		return ($this->dbMap !== null);
+	}
 
-    
-    public function doBuild()
-    {
-		$this->dbMap = Propel::getDatabaseMap('ipc_communityboards');
-		
+	
+	public function getDatabaseMap()
+	{
+		return $this->dbMap;
+	}
+
+	
+	public function doBuild()
+	{
+		$this->dbMap = Propel::getDatabaseMap('propel');
+
 		$tMap = $this->dbMap->addTable('resource_attribute_version');
 		$tMap->setPhpName('ResourceAttributeVersion');
 
 		$tMap->setUseIdGenerator(true);
 
-		$tMap->addPrimaryKey('ID', 'Id', 'int', CreoleTypes::INTEGER, true, 11);
+		$tMap->addPrimaryKey('ID', 'Id', 'int', CreoleTypes::INTEGER, true, null);
 
 		$tMap->addForeignKey('RESOURCE_VERSION_ID', 'ResourceVersionId', 'int', CreoleTypes::INTEGER, 'resource_version', 'ID', true, 11);
 
 		$tMap->addColumn('ATTRIBUTE_NAME', 'AttributeName', 'string', CreoleTypes::VARCHAR, true, 255);
 
-		$tMap->addColumn('ATTRIBUTE_VALUE', 'AttributeValue', 'string', CreoleTypes::LONGVARCHAR, false);
-				
-    } 
+		$tMap->addColumn('ATTRIBUTE_VALUE', 'AttributeValue', 'string', CreoleTypes::LONGVARCHAR, false, null);
+
+	} 
 } 

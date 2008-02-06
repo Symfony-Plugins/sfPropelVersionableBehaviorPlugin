@@ -29,15 +29,10 @@ The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versio
     <!-- schema.xml -->
     <column name="uuid" type="CHAR" size="36" required="true" />
     <column name="version" type="INTEGER" size="11" required="true" />
-  }}}
-
-  * Add foreign key between resource and version history. Edit plugin's schema.xml and enter valid values for `foreignTable` and `foreign` attributes
-  
-  {{{
-  #!xml
-    <foreign-key foreignTable="Article" name="has_versions" onDelete="cascade">
-      <reference local="resource_uuid" foreign="uuid"/>
-    </foreign-key>
+    or
+    <!-- schema.yml -->
+    uuid:    { type: char, size: 36, required: true }
+    version: { type: integer, size: 11, required: true }
   }}}
 
   * Rebuild your database and model (the plugin uses two tables to store object version history)
@@ -189,7 +184,6 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 0.2.2 ===
 
- * fix http://www.symfony-project.com/trac/ticket/1562
  * add unit tests to check version_attributes deletion
  
 === 0.3 ===
@@ -198,6 +192,12 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * depend on sfPropelUuidBehaviorPlugin for uuid management
 
 == Changelog ==
+
+=== Trunk ===
+
+ * francois: Removed need for hardcoded foreign key (fixes #1562)
+ * francois: Switched plugin schema to YAML
+ * francois: Made the unit tests more adaptable
 
 === 2007-16-03 | 0.2.1 alpha ===
 

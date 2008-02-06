@@ -5,9 +5,6 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 
 
 	
-	const DATABASE_NAME = 'ipc_communityboards';
-
-	
 	protected static $peer;
 
 
@@ -25,9 +22,6 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 
 	
 	protected $resource_name;
-
-	
-	protected $aPost;
 
 	
 	protected $collResourceAttributeVersions;
@@ -73,6 +67,10 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 	public function setId($v)
 	{
 
+						if ($v !== null && !is_int($v) && is_numeric($v)) {
+			$v = (int) $v;
+		}
+
 		if ($this->id !== $v) {
 			$this->id = $v;
 			$this->modifiedColumns[] = ResourceVersionPeer::ID;
@@ -82,6 +80,10 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 	
 	public function setNumber($v)
 	{
+
+						if ($v !== null && !is_int($v) && is_numeric($v)) {
+			$v = (int) $v;
+		}
 
 		if ($this->number !== $v) {
 			$this->number = $v;
@@ -93,19 +95,23 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 	public function setResourceUuid($v)
 	{
 
+						if ($v !== null && !is_string($v)) {
+			$v = (string) $v; 
+		}
+
 		if ($this->resource_uuid !== $v) {
 			$this->resource_uuid = $v;
 			$this->modifiedColumns[] = ResourceVersionPeer::RESOURCE_UUID;
-		}
-
-		if ($this->aPost !== null && $this->aPost->getUuid() !== $v) {
-			$this->aPost = null;
 		}
 
 	} 
 	
 	public function setResourceName($v)
 	{
+
+						if ($v !== null && !is_string($v)) {
+			$v = (string) $v; 
+		}
 
 		if ($this->resource_name !== $v) {
 			$this->resource_name = $v;
@@ -220,15 +226,6 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 			$this->alreadyInSave = true;
 
 
-												
-			if ($this->aPost !== null) {
-				if ($this->aPost->isModified()) {
-					$affectedRows += $this->aPost->save($con);
-				}
-				$this->setPost($this->aPost);
-			}
-
-
 						if ($this->isModified()) {
 				if ($this->isNew()) {
 					$pk = ResourceVersionPeer::doInsert($this, $con);
@@ -282,14 +279,6 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 			$retval = null;
 
 			$failureMap = array();
-
-
-												
-			if ($this->aPost !== null) {
-				if (!$this->aPost->validate($columns)) {
-					$failureMap = array_merge($failureMap, $this->aPost->getValidationFailures());
-				}
-			}
 
 
 			if (($retval = ResourceVersionPeer::doValidate($this, $columns)) !== true) {
@@ -478,36 +467,6 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 	}
 
 	
-	public function setPost($v)
-	{
-
-
-		if ($v === null) {
-			$this->setResourceUuid(NULL);
-		} else {
-			$this->setResourceUuid($v->getUuid());
-		}
-
-
-		$this->aPost = $v;
-	}
-
-
-	
-	public function getPost($con = null)
-	{
-				include_once 'lib/model/om/BasePostPeer.php';
-
-		if ($this->aPost === null && (($this->resource_uuid !== "" && $this->resource_uuid !== null))) {
-
-			$this->aPost = PostPeer::retrieveByPK($this->resource_uuid, $con);
-
-			
-		}
-		return $this->aPost;
-	}
-
-	
 	public function initResourceAttributeVersions()
 	{
 		if ($this->collResourceAttributeVersions === null) {
@@ -578,7 +537,7 @@ abstract class BaseResourceVersion extends BaseObject  implements Persistent {
 	}
 
 
-  public function __call($method, $parameters)
+  public function __call($method, $arguments)
   {
     if (!$callable = sfMixer::getCallable('BaseResourceVersion:'.$method))
     {

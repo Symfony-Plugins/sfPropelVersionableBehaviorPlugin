@@ -1,0 +1,12 @@
+propel:
+  _attributes:            { package: plugins.sfPropelVersionableBehaviorPlugin.lib.model }
+  resource_version:
+    id:
+    number:               { type: integer, size: 11, required: true, primaryKey: true }
+    resource_uuid:        { type: char, size: 36, required: true, index: true }
+    resource_name:        { type: varchar, size: 255, required: true }
+  resource_attribute_version:
+    id:
+    resource_version_id:  { type: integer, size: 11, required: true, foreignTable: resource_version, foreignReference: id, onDelete: cascade }
+    attribute_name:       { type: varchar, size: 255, required: true }
+    attribute_value:      { type: longvarchar }

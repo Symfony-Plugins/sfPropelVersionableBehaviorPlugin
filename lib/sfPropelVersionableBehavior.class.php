@@ -149,7 +149,6 @@ class sfPropelVersionableBehavior
    */
   public function preSave(BaseObject $resource)
   {
-
     if (self::versionConditionMet($resource))
     {
       if ($resource->isNew())
@@ -266,7 +265,7 @@ class sfPropelVersionableBehavior
     if (!$method = self::$condition_method)
     {
       $conf_directive = sprintf('propel_behavior_versionable_%s_conditional', get_class($resource));
-      $method = sfConfig::get($conf_directive);
+      $method = sfConfig::get($conf_directive, 'versionConditionMet');
     }
 
     $has_condition_method = method_exists($resource, $method);

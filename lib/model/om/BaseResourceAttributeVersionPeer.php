@@ -4,7 +4,7 @@
 abstract class BaseResourceAttributeVersionPeer {
 
 	
-	const DATABASE_NAME = 'ipc_communityboards';
+	const DATABASE_NAME = 'propel';
 
 	
 	const TABLE_NAME = 'resource_attribute_version';
@@ -199,14 +199,14 @@ abstract class BaseResourceAttributeVersionPeer {
 	public static function doCountJoinResourceVersion(Criteria $criteria, $distinct = false, $con = null)
 	{
 				$criteria = clone $criteria;
-		
+
 				$criteria->clearSelectColumns()->clearOrderByColumns();
 		if ($distinct || in_array(Criteria::DISTINCT, $criteria->getSelectModifiers())) {
 			$criteria->addSelectColumn(ResourceAttributeVersionPeer::COUNT_DISTINCT);
 		} else {
 			$criteria->addSelectColumn(ResourceAttributeVersionPeer::COUNT);
 		}
-		
+
 				foreach($criteria->getGroupByColumns() as $column)
 		{
 			$criteria->addSelectColumn($column);
@@ -281,7 +281,7 @@ abstract class BaseResourceAttributeVersionPeer {
 		} else {
 			$criteria->addSelectColumn(ResourceAttributeVersionPeer::COUNT);
 		}
-		
+
 				foreach($criteria->getGroupByColumns() as $column)
 		{
 			$criteria->addSelectColumn($column);
@@ -317,25 +317,25 @@ abstract class BaseResourceAttributeVersionPeer {
 
 		$rs = BasePeer::doSelect($c, $con);
 		$results = array();
-		
+
 		while($rs->next()) {
 
 			$omClass = ResourceAttributeVersionPeer::getOMClass();
 
-			
+
 			$cls = Propel::import($omClass);
 			$obj1 = new $cls();
 			$obj1->hydrate($rs);
 
-				
+
 					
 			$omClass = ResourceVersionPeer::getOMClass();
 
-	
+
 			$cls = Propel::import($omClass);
 			$obj2 = new $cls();
 			$obj2->hydrate($rs, $startcol2);
-			
+
 			$newObject = true;
 			for ($j=0, $resCount=count($results); $j < $resCount; $j++) {
 				$temp_obj1 = $results[$j];
@@ -344,7 +344,7 @@ abstract class BaseResourceAttributeVersionPeer {
 					$temp_obj2->addResourceAttributeVersion($obj1); 					break;
 				}
 			}
-			
+
 			if ($newObject) {
 				$obj2->initResourceAttributeVersions();
 				$obj2->addResourceAttributeVersion($obj1);

@@ -5,9 +5,6 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 
 
 	
-	const DATABASE_NAME = 'ipc_communityboards';
-
-	
 	protected static $peer;
 
 
@@ -67,6 +64,10 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 	public function setId($v)
 	{
 
+						if ($v !== null && !is_int($v) && is_numeric($v)) {
+			$v = (int) $v;
+		}
+
 		if ($this->id !== $v) {
 			$this->id = $v;
 			$this->modifiedColumns[] = ResourceAttributeVersionPeer::ID;
@@ -76,6 +77,10 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 	
 	public function setResourceVersionId($v)
 	{
+
+						if ($v !== null && !is_int($v) && is_numeric($v)) {
+			$v = (int) $v;
+		}
 
 		if ($this->resource_version_id !== $v) {
 			$this->resource_version_id = $v;
@@ -91,6 +96,10 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 	public function setAttributeName($v)
 	{
 
+						if ($v !== null && !is_string($v)) {
+			$v = (string) $v; 
+		}
+
 		if ($this->attribute_name !== $v) {
 			$this->attribute_name = $v;
 			$this->modifiedColumns[] = ResourceAttributeVersionPeer::ATTRIBUTE_NAME;
@@ -100,6 +109,10 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 	
 	public function setAttributeValue($v)
 	{
+
+						if ($v !== null && !is_string($v)) {
+			$v = (string) $v; 
+		}
 
 		if ($this->attribute_value !== $v) {
 			$this->attribute_value = $v;
@@ -467,7 +480,7 @@ abstract class BaseResourceAttributeVersion extends BaseObject  implements Persi
 	}
 
 
-  public function __call($method, $parameters)
+  public function __call($method, $arguments)
   {
     if (!$callable = sfMixer::getCallable('BaseResourceAttributeVersion:'.$method))
     {
