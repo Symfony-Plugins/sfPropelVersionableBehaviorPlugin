@@ -1,0 +1,220 @@
+= sfPropelVersionableBehaviorPlugin plugin =
+
+The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versioning capabilities to any Propel object.
+
+== Features ==
+
+ * Fully unit tested
+ * Revert objects to previous versions easily
+ * Conditional versioning
+
+== Installation ==
+
+  * Install the plugin
+  
+    {{{
+      symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBehaviorPlugin
+    }}}
+
+  * Enable Propel behavior support in `propel.ini`:
+
+    {{{
+      propel.builder.AddBehaviors = true
+    }}}
+  
+  * Add necessary fields to your model :
+  
+  {{{
+  #!xml
+    <!-- schema.xml -->
+    <column name="uuid" type="CHAR" size="36" required="true" />
+    <column name="version" type="INTEGER" size="11" required="true" />
+  }}}
+
+  * Add foreign key between resource and version history. Edit plugin's schema.xml and enter valid values for `foreignTable` and `foreign` attributes
+  
+  {{{
+  #!xml
+    <foreign-key foreignTable="Article" name="has_versions" onDelete="cascade">
+      <reference local="resource_uuid" foreign="uuid"/>
+    </foreign-key>
+  }}}
+
+  * Rebuild your database and model (the plugin uses two tables to store object version history)
+  
+  {{{
+  #!sh
+    symfony propel-build-all
+  }}}
+  
+  * Enable the behavior for one of your Propel model:
+
+    {{{
+    #!php
+    <?php
+      // lib/model/Article.php
+      class Article
+      {
+      }
+
+      $columns_map = array('uuid'     => ArticlePeer::UUID
+                           'version'  => ArticlePeer::VERSION);
+ 
+      sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map)));
+    }}}
+
+   Column map values signification : 
+     * uuid : Model column holding resource's universally unique identifier (behavior takes care of generating these)
+     * version : Model column holding resource's current version number
+
+== Usage ==
+
+=== Reverting to a previous version ===
+
+{{{
+#!php
+<?php
+
+  $article = new Article();
+  $article->setTitle('First version of article');
+  $article->save(); // $article->getVersion() == 1
+
+  $article->setTitle('Second version of article');
+  $article->save(); // $article->getVersion() == 2
+  
+  $article->toVersion(1); // $article->getTitle() == 'First version of article'
+  $article->save(); // $article->getVersion() == 3
+
+}}}
+
+=== Retrieving a resource version history ===
+
+{{{
+#!php
+<?php
+
+  foreach ($article->getAllVersions() as $version)
+  {
+     $history_article = $version->getResourceInstance();
+     echo sprintf("Version %d title : %s\n", 
+                  $history_article->getVersion(), 
+                  $history_article->getTitle());
+  }
+
+  /* 
+   * Outputs :
+   *
+   * Version 1 title : First version of article
+   * Version 2 title : Second version of article
+   * Version 3 title : First version of article
+   */
+
+}}}
+
+=== Conditional versioning ===
+
+You may not want to have a new version of resource created each time it is saved.
+
+Just add a `versionConditionMet()` method to your stub class. It is called each time object's `save()`.
+No version is created if it returns false.
+
+Example : 
+
+{{{
+#!php
+<?php
+
+  // lib/model/Article.php
+  
+  public function versionConditionMet()
+  {
+    return $this->getTitle() != 'do not version me';
+  }
+
+}}}
+
+{{{
+#!php
+<?php
+
+  $article = new Article();
+  $article->setTitle('New article');
+  $article->save(); // article is saved and a new version is created
+
+  $article->setTitle('do not version me');
+  $article->save(); // article is saved, no new version is created
+
+}}}
+
+It is possible to specify a different `versionConditionMet()` method name by defining it when registring behavior :
+
+{{{
+#!php
+<?php
+
+  sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map, 'conditional' => 'myMethod')));
+}}}
+
+It is possible to change this method at runtime :
+
+{{{
+#!php
+<?php
+
+  $previous_method = sfPropelVersionableBehavior::setVersionConditionMethod('myMethod');
+}}}
+
+== Public API ==
+
+=== Object API ===
+
+Enabling the behaviors adds / modifies the following method to the Propel objects :
+
+ * `void save()` : Adds a new version to resource's version history
+ * `void delete()` : Deletes resource's version history
+ * `void toVersion(integer $version_number)` : Populates resource properties with values from the requested version
+ * `ResourceVersion getLastVersion()`  : Returns resource's last version
+ * `array getAllVersions()`  : Returns each resource version in an array
+ 
+=== !ResourceVersion API ===
+
+ * `BaseObject getResourceInstance()` : returns resource instance populated with attributes from the version
+
+=== sfPropelVersionableBehavior API ===
+
+ * (static) `string setVersionConditionMethod(string $method_name)` : Sets object method used to decide if a new version should be created
+ * (static) `string getVersionConditionMethod()` : Returns version condition method name
+
+== Roadmap ==
+
+=== 0.2.2 ===
+
+ * fix http://www.symfony-project.com/trac/ticket/1562
+ * add unit tests to check version_attributes deletion
+ 
+=== 0.3 ===
+
+ * make plugin compatible with sfPropel's i18n capabilities
+ * depend on sfPropelUuidBehaviorPlugin for uuid management
+
+== Changelog ==
+
+=== 2007-16-03 | 0.2.1 alpha ===
+
+ * #1563 : does not create a version if YourClass::versionConditionMet() is not found (madman)
+ * #1564 : crashes while creating a new version if no prior version exists (madman)
+ * Syntax highlighting in README
+ * added `sfPropelVersionableBehavior::getVersionConditionMethod()` and `sfPropelVersionableBehavior::setVersionConditionMethod()` methods
+ * enhanced inner management of conditional versioning
+ * updated unit tests and docs accordingly
+
+=== 2007-02-17 | 0.2.0 alpha ===
+
+ * made version number management more reliable
+ * new `getLastVersion()` method
+ * implemented conditional versioning
+ * updated docs and unit tests accordingly
+
+=== 2007-02-17 | 0.1.0 alpha ===
+
+Initial public release.
