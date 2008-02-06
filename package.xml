@@ -1,79 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.1" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
- <name>sfPropelVersionableBehaviorPlugin</name>
- <channel>pear.symfony-project.com</channel>
- <summary>Propel versionable behavior</summary>
- <description>The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versioning capabilities to any Propel object.</description>
- <lead>
-  <name>Tristan Rivoallan</name>
-  <user>trivoallan</user>
-  <email>tristan@rivoallan.net</email>
-  <active>yes</active>
- </lead>
- <date>2007-03-16</date>
- <version>
-   <release>0.2.1</release>
-   <api>0.2.1</api>
- </version>
- <stability>
-  <release>alpha</release>
-  <api>alpha</api>
- </stability>
- <license uri="http://www.symfony-project.com/license">MIT license</license>
- <notes>-</notes>
- <contents>
-  <dir name="/">   
-   <file name="README" role="data" />
-   <file name="LICENSE" role="data" />
-
-   <dir name="config">
-     <file name="config.php" role="data" />
-     <file name="schema.yml" role="data" />
-   </dir>
-
-   <dir name="lib">
-   	 <dir name="model">
-   	   <file name="ResourceVersion.php" role="data" />
-   	 </dir>
-	 <file name="sfPropelVersionableBehavior.class.php" role="data" />
-	 <file name="sfPropelVersionableBehaviorToolkit.class.php" role="data" />
-   </dir>
-
-  </dir>
- </contents>
-
- <dependencies>
-  <required>
-   <php>
-    <min>5.1.0</min>
-   </php>
-   <pearinstaller>
-    <min>1.4.1</min>
-   </pearinstaller>
-   <package>
-    <name>symfony</name>
-    <channel>pear.symfony-project.com</channel>
-    <min>1.0.0</min>
-   </package>
-  </required>
- </dependencies>
-
- <phprelease>
- </phprelease>
-
- <changelog>
-  <release>
-   <version>
-    <release>0.2.1</release>
-    <api>0.2.1</api>
-   </version>
-   <stability>
+  <name>sfPropelVersionableBehaviorPlugin</name>
+  <channel>pear.symfony-project.com</channel>
+  <summary>Propel versionable behavior</summary>
+  <description>The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versioning capabilities to any Propel object.</description>
+  <lead>
+    <name>Tristan Rivoallan</name>
+    <user>trivoallan</user>
+    <email>tristan@rivoallan.net</email>
+    <active>yes</active>
+  </lead>
+  <developer>
+    <name>Francois Zaninotto</name>
+    <user>fzaninotto</user>
+    <email>francois.zaninotto@symfony-project.com</email>
+    <active>yes</active>
+  </developer>
+  <date>2008-02-06</date>
+  <version>
+    <release>0.2.2</release>
+    <api>0.2.2</api>
+  </version>
+  <stability>
     <release>alpha</release>
     <api>alpha</api>
-   </stability>
-   <date>2007-02-17</date>
-   <license uri="http://www.symfony-project.com/license">MIT license</license>
-   <notes>
+  </stability>
+  <license uri="http://www.symfony-project.com/license">MIT license</license>
+  <notes>-</notes>
+  <contents>
+    <dir name="/">
+      <file name="README" role="data"/>
+      <file name="LICENSE" role="data"/>
+      <dir name="config">
+        <file name="config.php" role="data"/>
+        <file name="schema.yml" role="data"/>
+      </dir>
+      <dir name="lib">
+        <dir name="model">
+          <file name="ResourceVersion.php" role="data"/>
+        </dir>
+        <file name="sfPropelVersionableBehavior.class.php" role="data"/>
+        <file name="sfPropelVersionableBehaviorToolkit.class.php" role="data"/>
+      </dir>
+    </dir>
+  </contents>
+  <dependencies>
+    <required>
+      <php>
+        <min>5.1.0</min>
+      </php>
+      <pearinstaller>
+        <min>1.4.1</min>
+      </pearinstaller>
+      <package>
+        <name>symfony</name>
+        <channel>pear.symfony-project.com</channel>
+        <min>1.0.0</min>
+      </package>
+    </required>
+  </dependencies>
+  <phprelease>
+ </phprelease>
+  <changelog>
+    <release>
+      <version>
+        <release>0.2.2</release>
+        <api>0.2.2</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2008-02-06</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
+* francois: Removed need for hardcoded foreign key (fixes #1562)
+* francois: Switched plugin schema to YAML
+* francois: Made the unit tests more adaptable
+   </notes>
+    </release>
+    <release>
+      <version>
+        <release>0.2.1</release>
+        <api>0.2.1</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2007-02-17</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
  * #1563 : does not create a version if YourClass::versionConditionMet() is not found (madman)
  * #1564 : crashes while creating a new version if no prior version exists (madman)
  * Syntax highlighting in README
@@ -81,41 +98,39 @@
  * enhanced inner management of conditional versioning
  * updated unit tests and docs accordingly
    </notes>
-  </release>
-
-  <release>
-   <version>
-    <release>0.2.0</release>
-    <api>0.2.0</api>
-   </version>
-   <stability>
-    <release>alpha</release>
-    <api>alpha</api>
-   </stability>
-   <date>2007-02-17</date>
-   <license uri="http://www.symfony-project.com/license">MIT license</license>
-   <notes>
+    </release>
+    <release>
+      <version>
+        <release>0.2.0</release>
+        <api>0.2.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2007-02-17</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
  * made version number management more reliable
  * new `getLastVersion()` method
  * implemented conditional versioning
  * updated docs and unit tests accordingly
    </notes>
-  </release>
-
-  <release>
-   <version>
-    <release>0.1.0</release>
-    <api>0.1.0</api>
-   </version>
-   <stability>
-    <release>alpha</release>
-    <api>alpha</api>
-   </stability>
-   <date>2007-02-17</date>
-   <license uri="http://www.symfony-project.com/license">MIT license</license>
-   <notes>
+    </release>
+    <release>
+      <version>
+        <release>0.1.0</release>
+        <api>0.1.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2007-02-17</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
 Initial public release
    </notes>
-  </release>
- </changelog>
+    </release>
+  </changelog>
 </package>

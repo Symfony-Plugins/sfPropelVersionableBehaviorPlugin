@@ -13,52 +13,52 @@ The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versio
   * Install the plugin
   
     {{{
-      symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBehaviorPlugin
+symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBehaviorPlugin
     }}}
 
   * Enable Propel behavior support in `propel.ini`:
 
     {{{
-      propel.builder.AddBehaviors = true
+propel.builder.AddBehaviors = true
     }}}
   
-  * Add necessary fields to your model :
+  * Add necessary fields to your each of your model tables that you want to make versionable:
   
-  {{{
-  #!xml
-    <!-- schema.xml -->
-    <column name="uuid" type="CHAR" size="36" required="true" />
-    <column name="version" type="INTEGER" size="11" required="true" />
-    or
-    <!-- schema.yml -->
-    uuid:    { type: char, size: 36, required: true }
-    version: { type: integer, size: 11, required: true }
-  }}}
+    {{{
+#!xml
+<!-- schema.xml -->
+<column name="uuid" type="CHAR" size="36" required="true" />
+<column name="version" type="INTEGER" size="11" required="true" />
+or
+<!-- schema.yml -->
+uuid:    { type: char, size: 36, required: true }
+version: { type: integer, size: 11, required: true }
+    }}}
 
   * Rebuild your database and model (the plugin uses two tables to store object version history)
   
-  {{{
-  #!sh
-    symfony propel-build-all
-  }}}
+    {{{
+#!sh
+> php symfony propel-build-all
+    }}}
   
-  * Enable the behavior for one of your Propel model:
+  * Enable the behavior for the Propel models that you want to extend. For instance, to extend an `Article` Propel class:
 
     {{{
-    #!php
-    <?php
-      // lib/model/Article.php
-      class Article
-      {
-      }
+#!php
+<?php
+// lib/model/Article.php
+class Article
+{
+}
 
-      $columns_map = array('uuid'     => ArticlePeer::UUID
-                           'version'  => ArticlePeer::VERSION);
- 
-      sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map)));
-    }}}
+$columns_map = array('uuid'     => ArticlePeer::UUID,
+                     'version'  => ArticlePeer::VERSION);
 
-   Column map values signification : 
+sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map)));
+   }}}
+
+   Column map values mean:
      * uuid : Model column holding resource's universally unique identifier (behavior takes care of generating these)
      * version : Model column holding resource's current version number
 
@@ -70,16 +70,15 @@ The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versio
 #!php
 <?php
 
-  $article = new Article();
-  $article->setTitle('First version of article');
-  $article->save(); // $article->getVersion() == 1
+$article = new Article();
+$article->setTitle('First version of article');
+$article->save(); // $article->getVersion() == 1
 
-  $article->setTitle('Second version of article');
-  $article->save(); // $article->getVersion() == 2
-  
-  $article->toVersion(1); // $article->getTitle() == 'First version of article'
-  $article->save(); // $article->getVersion() == 3
+$article->setTitle('Second version of article');
+$article->save(); // $article->getVersion() == 2
 
+$article->toVersion(1); // $article->getTitle() == 'First version of article'
+$article->save(); // $article->getVersion() == 3
 }}}
 
 === Retrieving a resource version history ===
@@ -88,22 +87,21 @@ The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versio
 #!php
 <?php
 
-  foreach ($article->getAllVersions() as $version)
-  {
-     $history_article = $version->getResourceInstance();
-     echo sprintf("Version %d title : %s\n", 
-                  $history_article->getVersion(), 
-                  $history_article->getTitle());
-  }
+foreach ($article->getAllVersions() as $version)
+{
+   $history_article = $version->getResourceInstance();
+   echo sprintf("Version %d title : %s\n", 
+                $history_article->getVersion(), 
+                $history_article->getTitle());
+}
 
-  /* 
-   * Outputs :
-   *
-   * Version 1 title : First version of article
-   * Version 2 title : Second version of article
-   * Version 3 title : First version of article
-   */
-
+/* 
+ * Outputs:
+ *
+ * Version 1 title: First version of article
+ * Version 2 title: Second version of article
+ * Version 3 title: First version of article
+ */
 }}}
 
 === Conditional versioning ===
@@ -119,26 +117,24 @@ Example :
 #!php
 <?php
 
-  // lib/model/Article.php
-  
-  public function versionConditionMet()
-  {
-    return $this->getTitle() != 'do not version me';
-  }
+// lib/model/Article.php
 
+public function versionConditionMet()
+{
+  return $this->getTitle() != 'do not version me';
+}
 }}}
 
 {{{
 #!php
 <?php
 
-  $article = new Article();
-  $article->setTitle('New article');
-  $article->save(); // article is saved and a new version is created
+$article = new Article();
+$article->setTitle('New article');
+$article->save(); // article is saved and a new version is created
 
-  $article->setTitle('do not version me');
-  $article->save(); // article is saved, no new version is created
-
+$article->setTitle('do not version me');
+$article->save(); // article is saved, no new version is created
 }}}
 
 It is possible to specify a different `versionConditionMet()` method name by defining it when registring behavior :
@@ -147,7 +143,7 @@ It is possible to specify a different `versionConditionMet()` method name by def
 #!php
 <?php
 
-  sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map, 'conditional' => 'myMethod')));
+sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map, 'conditional' => 'myMethod')));
 }}}
 
 It is possible to change this method at runtime :
@@ -156,7 +152,7 @@ It is possible to change this method at runtime :
 #!php
 <?php
 
-  $previous_method = sfPropelVersionableBehavior::setVersionConditionMethod('myMethod');
+$previous_method = sfPropelVersionableBehavior::setVersionConditionMethod('myMethod');
 }}}
 
 == Public API ==
@@ -165,41 +161,43 @@ It is possible to change this method at runtime :
 
 Enabling the behaviors adds / modifies the following method to the Propel objects :
 
- * `void save()` : Adds a new version to resource's version history
- * `void delete()` : Deletes resource's version history
- * `void toVersion(integer $version_number)` : Populates resource properties with values from the requested version
- * `ResourceVersion getLastVersion()`  : Returns resource's last version
- * `array getAllVersions()`  : Returns each resource version in an array
+ * `void save()`: Adds a new version to resource's version history
+ * `void delete()`: Deletes resource's version history
+ * `void toVersion(integer $version_number)`: Populates resource properties with values from the requested version
+ * `ResourceVersion getLastVersion()`: Returns resource's last version
+ * `array getAllVersions()`: Returns all resource versions in an array
  
 === !ResourceVersion API ===
 
- * `BaseObject getResourceInstance()` : returns resource instance populated with attributes from the version
+ * `BaseObject getResourceInstance()`: Returns resource instance populated with attributes from the version
+ * `int getNumber()`: Returns the version number of the version object
+
 
 === sfPropelVersionableBehavior API ===
 
- * (static) `string setVersionConditionMethod(string $method_name)` : Sets object method used to decide if a new version should be created
- * (static) `string getVersionConditionMethod()` : Returns version condition method name
+ * (static) `string setVersionConditionMethod(string $method_name)`: Sets object method used to decide if a new version should be created
+ * (static) `string getVersionConditionMethod()`: Returns version condition method name
 
 == Roadmap ==
 
-=== 0.2.2 ===
-
- * add unit tests to check version_attributes deletion
- 
 === 0.3 ===
 
- * make plugin compatible with sfPropel's i18n capabilities
- * depend on sfPropelUuidBehaviorPlugin for uuid management
+ * Add unit tests to check version_attributes deletion
+ * Make plugin compatible with sfPropel's i18n capabilities
+ * Replace uuid by a simple composite key class name + id
 
 == Changelog ==
 
 === Trunk ===
 
+=== 2008-02-06 | 0.2.2 alpha ===
+
+ * francois: Made the doc more explicit about multiple models (fixes #1820)
  * francois: Removed need for hardcoded foreign key (fixes #1562)
  * francois: Switched plugin schema to YAML
  * francois: Made the unit tests more adaptable
 
-=== 2007-16-03 | 0.2.1 alpha ===
+=== 2007-16-03 | 0.2.1 alpha ===
 
  * #1563 : does not create a version if YourClass::versionConditionMet() is not found (madman)
  * #1564 : crashes while creating a new version if no prior version exists (madman)
