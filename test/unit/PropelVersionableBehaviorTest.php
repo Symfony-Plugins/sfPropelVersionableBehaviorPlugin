@@ -44,7 +44,6 @@ You can override the model class and columns the tests should use in your app.ym
 all:
   sfPropelVersionableBehaviorPlugin:
     test_class:          Article
-    test_uuid_column:    uuid
     test_version_column: version
     test_title_column:   title
 For the tests to run, your class must hav the following method:
@@ -54,7 +53,6 @@ For the tests to run, your class must hav the following method:
     }
 */
 $test_class = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_class', 'Post');
-$test_class_uuid_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_uuid_column', 'uuid');
 $test_class_version_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_version_column', 'version');
 $test_class_title_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_title_column', 'title');
 
@@ -71,15 +69,15 @@ $con = Propel::getConnection();
 
 // cleanup database
 call_user_func(array(_create_resource()->getPeer(), 'doDeleteAll'));
+ResourceAttributeVersionPeer::doDeleteAll();
 ResourceVersionPeer::doDeleteAll();
 
 // register behavior on test object
 sfPropelBehavior::add($test_class, array('versionable' => array(
-  'uuid'     => $test_class_uuid_column,
   'version'  => $test_class_version_column
 )));
 
-$t = new lime_test(19, new lime_output_color());
+$t = new lime_test(26, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -87,17 +85,11 @@ $t->diag('save()');
 $r = _create_resource();
 $r->setByName($test_class_title_column, 'V1', BasePeer::TYPE_FIELDNAME);
 $r->save();
-
-$t->isnt($r->getByName($test_class_uuid_column, BasePeer::TYPE_FIELDNAME), null, 'save() generates a universal unique id for new resources');
-
-$uuid = $r->getByName($test_class_uuid_column, BasePeer::TYPE_FIELDNAME);
-$r->setByName($test_class_title_column, 'V2', BasePeer::TYPE_FIELDNAME);
-$r->save();
-
-$t->is($r->getByName($test_class_uuid_column, BasePeer::TYPE_FIELDNAME), $uuid, 'save() does not generate a new universal unique id for existing resources');
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 1, 'save() initializes the version number to 1 for new objects');
 
 $c = new Criteria();
-$c->add(ResourceVersionPeer::RESOURCE_UUID, $r->getByName($test_class_uuid_column, BasePeer::TYPE_FIELDNAME));
+$c->add(ResourceVersionPeer::RESOURCE_ID, $r->getPrimaryKey());
+$c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($r));
 $c->add(ResourceVersionPeer::NUMBER, $r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME));
 $version = ResourceVersionPeer::doSelectOne($c);
 $t->isnt($version, null, 'save() creates a new version of resource in database');
@@ -106,11 +98,14 @@ foreach ($version->getResourceAttributeVersions() as $attrib_version)
   $getter = sprintf('get%s', $attrib_version->getAttributeName());
   $t->is($attrib_version->getAttributeValue(), $r->$getter(), 'save() creates a new version of resource in database with appropriate parameters');
 }
+$r->setByName($test_class_title_column, 'V2', BasePeer::TYPE_FIELDNAME);
+$r->save();
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() increments the version number');
 
-// getLastVersion()
-$t->diag('getLastVersion()');
+// getLastResourceVersion()
+$t->diag('getLastResourceVersion()');
 
-$t->is($r->getLastVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastVersion() returns last version of resource');
+$t->is($r->getLastResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastVersion() returns last version of resource');
 
 $r->setByName($test_class_title_column, 'do not version me', BasePeer::TYPE_FIELDNAME);
 $r->save();
@@ -120,6 +115,7 @@ $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, '
 $t->diag('toVersion()');
 
 $r->toVersion(1);
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 1, 'toVersion() sets resource version to appropriate values');
 $t->is($r->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V1', 'toVersion() sets resource attributes to appropriate values');
 $r->save();
 $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 3, 'save() correctly increments version number after toVersion() call');
@@ -133,27 +129,45 @@ catch (Exception $e)
   $t->pass('toVersion() throws an exception when requested version does not exist');
 }
 
-// getAllVersions()
-$t->diag('getAllVersions()');
+// getAllResourceVersions()
+$t->diag('getAllResourceVersions()');
 
 $r->setByName($test_class_title_column, 'V4', BasePeer::TYPE_FIELDNAME);
 $r->save();
-$all_versions = $r->getAllVersions();
+$all_versions = $r->getAllResourceVersions();
 $target_versions = array('V1', 'V2', 'V1', 'V4');
-$t->diag('getAllVersions()');
-$t->is(count($all_versions), 4, 'getAllVersions() returns right count of versions');
+$t->is(count($all_versions), 4, 'getAllResourceVersions() returns right count of versions');
 $versions_titles = array();
 foreach($all_versions as $v)
 {
   $versions_titles[] = $v->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME);
 }
+$t->is($versions_titles, $target_versions, 'getAllResourceVersions() returns the right versions');
+
+// getAllVersions()
+$t->diag('getAllVersions()');
+$all_object_versions = $r->getAllVersions();
+$t->is(count($all_object_versions), 4, 'getAllVersions() returns right count of objects');
+$versions_titles = array();
+$versions_versions = array();
+foreach($all_object_versions as $obj)
+{
+  $versions_titles[] = $obj->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME);
+  $versions_versions[] = $obj->getVersion();
+}
 $t->is($versions_titles, $target_versions, 'getAllVersions() returns the right versions');
+$t->is($versions_versions, array(1, 2, 3, 4), 'getAllVersions() returns the array of ordered versions');
 
 // delete()
 $t->diag('delete()');
-
+$versions = $r->getAllResourceVersions();
 $r->delete();
-$t->is($r->getAllVersions(), null, 'delete() also deletes resource version history');
+$t->is($r->getAllResourceVersions(), null, 'delete() also deletes resource version history');
+foreach($versions as $version)
+{
+  // These verison objects now have no counterpart in database, but they are a convenient way to get to the ResourceAttributeVersion objects
+  $t->is($version->getResourceAttributeVersions(), null, 'delete() also deletes resource attribute version history');
+}
 
 // setVersionConditionMethod()
 $t->diag('setVersionConditionMethod()');
@@ -175,7 +189,7 @@ $r->save();
 sfPropelVersionableBehavior::setVersionConditionMethod('nonExistentMethod');
 $r->setByName($test_class_title_column, 'do not version me', BasePeer::TYPE_FIELDNAME);
 $r->save();
-$t->is($r->getLastVersion()->getNumber(), 2, 'save() creates a version even if YourClass::versionConditionMet() is not found');
+$t->is($r->getLastResourceVersion()->getNumber(), 2, 'save() creates a version even if YourClass::versionConditionMet() is not found');
 
 // #1564 crashes while creating a new version if no prior version exists
 $t->diag('#1564 : sfPropelVersionableBehaviorPlugin crashes while creating a new version if no prior version exists');

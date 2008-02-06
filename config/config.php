@@ -25,15 +25,11 @@ sfPropelBehavior::registerMethods('versionable', array (
   ),
   array (
     'sfPropelVersionableBehavior',
-    'getLastVersion'
+    'getAllResourceVersions'
   ),
   array (
     'sfPropelVersionableBehavior',
-    'setUuid'
-  ),
-  array (
-    'sfPropelVersionableBehavior',
-    'getUuid'
+    'getLastResourceVersion'
   ),
   array (
     'sfPropelVersionableBehavior',

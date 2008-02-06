@@ -4,16 +4,18 @@ The `sfPropelVersionableBehaviorPlugin` is a symfony plugin that provides versio
 
 == Features ==
 
- * Fully unit tested
  * Revert objects to previous versions easily
+ * Track and browse history of modifications on every object
  * Conditional versioning
+ * Fully unit tested
 
 == Installation ==
 
   * Install the plugin
   
     {{{
-symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBehaviorPlugin
+#!sh
+> php symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBehaviorPlugin
     }}}
 
   * Enable Propel behavior support in `propel.ini`:
@@ -22,24 +24,27 @@ symfony plugin-install http://plugins.symfony-project.com/sfPropelVersionableBeh
 propel.builder.AddBehaviors = true
     }}}
   
-  * Add necessary fields to your each of your model tables that you want to make versionable:
+  * Add a `version` field to each of the model tables that you want to make versionable:
   
     {{{
 #!xml
 <!-- schema.xml -->
-<column name="uuid" type="CHAR" size="36" required="true" />
-<column name="version" type="INTEGER" size="11" required="true" />
+<column name="version" type="INTEGER" required="true" />
 or
 <!-- schema.yml -->
-uuid:    { type: char, size: 36, required: true }
-version: { type: integer, size: 11, required: true }
+version: { type: integer, required: true }
     }}}
+    
+    Alternatively, you can choose another name that `version` and declare it in the behavior initialization. Even though, the behavior will still provide a `getVersion` and `setVersion` method for your versionable models.
 
-  * Rebuild your database and model (the plugin uses two tables to store object version history)
+  * Rebuild your model and sql, insert the plugin tables to your database, and the new version column to your versionable tables:
   
     {{{
 #!sh
-> php symfony propel-build-all
+> php symfony propel-build-model
+> php symfony propel-build-sql
+> mysql -uroot -p mydb < data/sql/plugins.sfPropelVersionableBehaviorPlugin.lib.model.schema.sql
+> mysql -uroot -p mydb -e 'ALTER TABLE `Article` ADD `version` INTEGER NOT NULL;'
     }}}
   
   * Enable the behavior for the Propel models that you want to extend. For instance, to extend an `Article` Propel class:
@@ -52,15 +57,22 @@ class Article
 {
 }
 
-$columns_map = array('uuid'     => ArticlePeer::UUID,
-                     'version'  => ArticlePeer::VERSION);
-
-sfPropelBehavior::add('Article', array('versionable' => array('columns' => $columns_map)));
+sfPropelBehavior::add('Article', array('versionable'));
    }}}
 
-   Column map values mean:
-     * uuid : Model column holding resource's universally unique identifier (behavior takes care of generating these)
-     * version : Model column holding resource's current version number
+   If the model uses a version column name diffeent than `version`, declare it here as the 'version' parameter of the behavior initialization:
+
+   {{{
+#!php
+sfPropelBehavior::add('Article', array('versionable' => array('columns' => array('version'  => 'my_version_column'))));
+  }}}
+
+  * Clear the cache
+
+    {{{
+#!sh
+> php symfony cc
+    }}}
 
 == Usage ==
 
@@ -87,12 +99,12 @@ $article->save(); // $article->getVersion() == 3
 #!php
 <?php
 
-foreach ($article->getAllVersions() as $version)
+foreach ($article->getAllVersions() as $history_article)
 {
-   $history_article = $version->getResourceInstance();
    echo sprintf("Version %d title : %s\n", 
-                $history_article->getVersion(), 
-                $history_article->getTitle());
+                $history_article->getVersion(),
+                $history_article->getTitle()
+                );
 }
 
 /* 
@@ -161,11 +173,12 @@ $previous_method = sfPropelVersionableBehavior::setVersionConditionMethod('myMet
 
 Enabling the behaviors adds / modifies the following method to the Propel objects :
 
- * `void save()`: Adds a new version to resource's version history
- * `void delete()`: Deletes resource's version history
- * `void toVersion(integer $version_number)`: Populates resource properties with values from the requested version
- * `ResourceVersion getLastVersion()`: Returns resource's last version
- * `array getAllVersions()`: Returns all resource versions in an array
+ * `void save()`: Adds a new version to the object version history and increments the `version` property
+ * `void delete()`: Deletes the object version history
+ * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
+ * `array getAllVersions()`: Returns all versions of the object in an ordered array
+ * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
+ * `array getAllResourceVersions()`: Returns all version objects in an array
  
 === !ResourceVersion API ===
 
@@ -182,13 +195,19 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 0.3 ===
 
- * Add unit tests to check version_attributes deletion
  * Make plugin compatible with sfPropel's i18n capabilities
- * Replace uuid by a simple composite key class name + id
+ * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
 == Changelog ==
 
-=== Trunk ===
+=== 2008-02-06 | Trunk ===
+
+ * francois: More explicit documentation on installation
+ * francois: Added a few unit tests
+ * francois: Added a `getAllVersions` method returning an array of origin objects in a single query
+ * francois: [BC Break] Renamed `getAllVersions` to `getAllResourceVersions`
+ * francois: [BC Break] Renamed `getLastVersions` to `getLastResourceVersion`
+ * francois: [BC Break] Replaced uuid by a simple composite key class name + id
 
 === 2008-02-06 | 0.2.2 alpha ===
 

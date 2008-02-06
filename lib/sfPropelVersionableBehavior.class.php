@@ -14,18 +14,17 @@
  * To enable this behavior add this after Propel stub class declaration :
  * 
  * <code>
- *   $columns_map = array('uuid'     => MyClassPeer::UUID,
- *                        'version'  => MyClassPeer::VERSION);
+ *   $columns_map = array('version'  => MyClassPeer::VERSION);
  * 
  *   sfPropelBehavior::add('MyClass', array('versionable' => array('columns' => $columns_map)));
  * </code>
  * 
  * Column map values signification :
  * 
- *  - uuid : Model column holding resource's universally unique identifier (behavior takes care of generating these)
  *  - version : Model column holding resource's current version number
  * 
  * @author Tristan Rivoallan <tristan@rivoallan.net>
+ * @author Francois Zaninotto <francois.zaninotto@symfony-project.com>
  */
 class sfPropelVersionableBehavior
 {
@@ -49,18 +48,18 @@ class sfPropelVersionableBehavior
   public function toVersion(BaseObject $resource, $version_num)
   {
     $c = new Criteria();
-    $c->add(ResourceVersionPeer::RESOURCE_UUID, $resource->getUuid());
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
     $c->add(ResourceVersionPeer::NUMBER, $version_num);
     $version = ResourceVersionPeer::doSelectOne($c);
     
     if (is_null($version))
     {
-      $msg = sprintf('Resource "%s" has no version "%d"', $resource->getUuid(), $version_num);
+      $msg = sprintf('Resource "%s" has no version "%d"', $resource->getPrimaryKey(), $version_num);
       throw new Exception($msg);
     }
     
     $resource = self::populateResourceFromVersion($resource, $version);
-    
   }
  
   /**
@@ -69,25 +68,77 @@ class sfPropelVersionableBehavior
    * @param      BaseObject    $resource
    * @return     ResourceVersion
    */
-  public function getLastVersion(BaseObject $resource)
+  public function getLastResourceVersion(BaseObject $resource)
   {
     $c = new Criteria();
-    $c->add(ResourceVersionPeer::RESOURCE_UUID, $resource->getUuid());
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
     $c->addDescendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    
     return ResourceVersionPeer::doSelectOne($c);
   }
  
   /**
-   * Returns all versions of resource.
+   * Returns all ResourceVersion instances related to the object, ordered by version asc.
    * 
-   * @param      BaseObject    $resource
-   * @return     array
+   * @param      BaseObject   $resource
+   * @return     array        List of ResourceVersion objects
+   */
+  public function getAllResourceVersions(BaseObject $resource)
+  {
+    $c = new Criteria();
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    
+    return ResourceVersionPeer::doSelect($c);
+  }
+
+  /**
+   * Returns all ResourceVersion instances related to the object, ordered by version asc.
+   * 
+   * @param      BaseObject   $resource
+   * @return     array        List of BaseObject objects
    */
   public function getAllVersions(BaseObject $resource)
   {
     $c = new Criteria();
-    $c->add(ResourceVersionPeer::RESOURCE_UUID, $resource->getUuid());
-    return ResourceVersionPeer::doSelect($c);
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    $c->addJoin(ResourceAttributeVersionPeer::RESOURCE_VERSION_ID, ResourceVersionPeer::ID);
+    $attributes = ResourceAttributeVersionPeer::doSelect($c);
+    
+    $objects = array();
+    $object = null;
+    $class= get_class($resource);
+    $current_id = null;
+    foreach($attributes as $attribute)
+    {
+      if($attribute->getResourceVersionId() != $current_id)
+      {
+        if($object)
+        {
+          $objects[]= $object;
+        }
+        $current_id = $attribute->getResourceVersionId();
+        $object = new $class;
+      }
+      $attrib_name = $attribute->getAttributeName();
+      $setter = sprintf('set%s', $attrib_name);
+      
+      if (!method_exists($resource, $setter))
+      {
+        $msg = sprintf('Impossible to set attribute "%s" on resource "%s"', 
+                      $attrib_name, get_class($resource));
+        throw new Exception($msg);
+      }
+      $object->$setter($attribute->getAttributeValue());
+      
+    }
+    $objects[] = $object;
+    
+    return $objects;
   }
 
 # ---- GETTERS & SETTERS
@@ -116,34 +167,10 @@ class sfPropelVersionableBehavior
     return $resource->$setter($version_number);    
   }
 
-  /**
-   * Returns resource UUID. Proxy method to real getter.
-   * 
-   * @param      BaseObject    $resource
-   * @return     string
-   */
-  public function getUuid(BaseObject $resource)
-  {
-    $getter = self::forgeMethodName($resource, 'get', 'uuid');
-    return $resource->$getter();    
-  }
-
-  /**
-   * Sets resource UUID. Proxy method to real setter.
-   * 
-   * @param      BaseObject    $resource
-   * @param      string        $uuid
-   */
-  public function setUuid(BaseObject $resource, $uuid)
-  {
-    $setter = self::forgeMethodName($resource, 'set', 'uuid');
-    return $resource->$setter($uuid);    
-  }
-
 # ---- HOOKS
 
   /**
-   * This hook is called before object is saved. It takes care of generating a new UUID if necessary.
+   * This hook is called before object is saved.
    * 
    * @param      BaseObject    $resource
    */
@@ -151,12 +178,7 @@ class sfPropelVersionableBehavior
   {
     if (self::versionConditionMet($resource))
     {
-      if ($resource->isNew())
-      {
-        $resource->setUuid(sfPropelVersionableBehaviorToolkit::generateUuid());
-      }
-
-      if ($version = $resource->getLastVersion())
+      if ($version = $resource->getLastResourceVersion())
       {
         $resource->setVersion($version->getNumber() + 1);
       }
@@ -179,7 +201,6 @@ class sfPropelVersionableBehavior
       $version = new ResourceVersion();
       $version->populateFromObject($resource);
       $version->setNumber($resource->getVersion());
-      $version->setResourceUuid($resource->getUuid());
       $version->save();
     }
   }
@@ -190,7 +211,8 @@ class sfPropelVersionableBehavior
   public function postDelete(BaseObject $resource)
   {
     $c = new Criteria();
-    $c->add(ResourceVersionPeer::RESOURCE_UUID, $resource->getUuid());
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
     ResourceVersionPeer::doDelete($c);
   }
 
@@ -212,7 +234,7 @@ class sfPropelVersionableBehavior
       
       if (!method_exists($resource, $setter))
       {
-        $msg = sprint('Impossible to set attribute "%s" on resource "%s"', 
+        $msg = sprintf('Impossible to set attribute "%s" on resource "%s"', 
                       $attrib_name, get_class($resource));
         throw new Exception($msg);
       }
@@ -228,7 +250,7 @@ class sfPropelVersionableBehavior
    * 
    * @param     BaseObject    $resource
    * @param     string        $prefix     Usually 'get' or 'set'
-   * @param     string        $column     uuid|version
+   * @param     string        $column     version
    */
   private static function forgeMethodName($resource, $prefix, $column)
   {

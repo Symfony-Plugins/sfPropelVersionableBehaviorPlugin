@@ -23,7 +23,7 @@ class ResourceVersion extends BaseResourceVersion
    */
   public function populateFromObject(BaseObject $resource)
   {
-    $this->setResourceUuid($resource->getUuid());
+    $this->setResourceId($resource->getPrimaryKey());
     $this->setResourceName(get_class($resource));
     $this->setNumber($resource->getVersion());
     
