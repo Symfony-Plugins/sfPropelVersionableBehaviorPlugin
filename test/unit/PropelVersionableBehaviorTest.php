@@ -77,7 +77,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array(
   'version'  => $test_class_version_column
 )));
 
-$t = new lime_test(26, new lime_output_color());
+$t = new lime_test(30, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -107,9 +107,33 @@ $t->diag('getLastResourceVersion()');
 
 $t->is($r->getLastResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastVersion() returns last version of resource');
 
+// conditional versioning
+$t->diag('conditional versioning');
 $r->setByName($test_class_title_column, 'do not version me', BasePeer::TYPE_FIELDNAME);
 $r->save();
-$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() complies with conditional versioning feature');
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() hooks can be deactivated by a versionConditionMet() method');
+
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', false);
+$r->setByName($test_class_title_column, 'do not version me either, but for another reason', BasePeer::TYPE_FIELDNAME);
+$r->save();
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() hooks can be deactivated by changing app_sfPropelVersionableBehaviorPlugin_auto_versioning to off');
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
+
+// addVersion()
+$t->diag('addVersion()');
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', false);
+$r->setByName($test_class_title_column, 'this time, please version me, but manually', BasePeer::TYPE_FIELDNAME);
+$r->addVersion();
+$r->save();
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 3, 'addVersion() creates a new version even when app_sfPropelVersionableBehaviorPlugin_auto_versioning is set to off');
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
+try
+{
+  $r->addVersion();
+  $t->fail('calling addVersion() when save hooks are activated throws an exception');
+} catch (Exception $e) {
+  $t->pass('calling addVersion() when save hooks are activated throws an exception');
+}
 
 // toVersion()
 $t->diag('toVersion()');
@@ -118,25 +142,23 @@ $r->toVersion(1);
 $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 1, 'toVersion() sets resource version to appropriate values');
 $t->is($r->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V1', 'toVersion() sets resource attributes to appropriate values');
 $r->save();
-$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 3, 'save() correctly increments version number after toVersion() call');
+$t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 4, 'save() correctly increments version number after toVersion() call');
 try
 {
   $r->toVersion(0);
   $t->fail('toVersion() throws an exception when requested version does not exist');
-}
-catch (Exception $e)
-{
+} catch (Exception $e) {
   $t->pass('toVersion() throws an exception when requested version does not exist');
 }
 
 // getAllResourceVersions()
 $t->diag('getAllResourceVersions()');
 
-$r->setByName($test_class_title_column, 'V4', BasePeer::TYPE_FIELDNAME);
+$r->setByName($test_class_title_column, 'V5', BasePeer::TYPE_FIELDNAME);
 $r->save();
 $all_versions = $r->getAllResourceVersions();
-$target_versions = array('V1', 'V2', 'V1', 'V4');
-$t->is(count($all_versions), 4, 'getAllResourceVersions() returns right count of versions');
+$target_versions = array('V1', 'V2', 'this time, please version me, but manually', 'V1', 'V5');
+$t->is(count($all_versions), 5, 'getAllResourceVersions() returns right count of versions');
 $versions_titles = array();
 foreach($all_versions as $v)
 {
@@ -147,7 +169,7 @@ $t->is($versions_titles, $target_versions, 'getAllResourceVersions() returns the
 // getAllVersions()
 $t->diag('getAllVersions()');
 $all_object_versions = $r->getAllVersions();
-$t->is(count($all_object_versions), 4, 'getAllVersions() returns right count of objects');
+$t->is(count($all_object_versions), 5, 'getAllVersions() returns right count of objects');
 $versions_titles = array();
 $versions_versions = array();
 foreach($all_object_versions as $obj)
@@ -156,7 +178,7 @@ foreach($all_object_versions as $obj)
   $versions_versions[] = $obj->getVersion();
 }
 $t->is($versions_titles, $target_versions, 'getAllVersions() returns the right versions');
-$t->is($versions_versions, array(1, 2, 3, 4), 'getAllVersions() returns the array of ordered versions');
+$t->is($versions_versions, array(1, 2, 3, 4, 5), 'getAllVersions() returns the array of ordered versions');
 
 // delete()
 $t->diag('delete()');

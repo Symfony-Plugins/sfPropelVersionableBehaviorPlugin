@@ -140,6 +140,22 @@ class sfPropelVersionableBehavior
     
     return $objects;
   }
+  
+  /**
+   * Increments the object's version number (without saving it) and creates a new ResourceVersion record.
+   * To be used when versionConditionMet() is false
+   * 
+   * @param      BaseObject   $resource
+   */
+  public function addVersion(BaseObject $resource)
+  {
+    if (self::versionConditionMet($resource))
+    {
+      throw new Exception("Impossible to use addVersion() when auto_versioning is on and versionConditionMet() is true");
+    }
+    self::incrementVersion($resource);
+    self::createResourceVersion($resource);
+  }
 
 # ---- GETTERS & SETTERS
 
@@ -178,17 +194,10 @@ class sfPropelVersionableBehavior
   {
     if (self::versionConditionMet($resource))
     {
-      if ($version = $resource->getLastResourceVersion())
-      {
-        $resource->setVersion($version->getNumber() + 1);
-      }
-      else
-      {
-        $resource->setVersion(1); 
-      }
+      self::incrementVersion($resource);
     }
   }
-
+  
   /**
    * This hook is called juste after object is saved. It takes care of creating a new version of resource.
    * 
@@ -198,13 +207,10 @@ class sfPropelVersionableBehavior
   {
     if (self::versionConditionMet($resource))
     {
-      $version = new ResourceVersion();
-      $version->populateFromObject($resource);
-      $version->setNumber($resource->getVersion());
-      $version->save();
+      self::createResourceVersion($resource);
     }
   }
-
+  
   /**
    * This hook is called just after a resource is deleted and takes care of deleting its version history.
    */
@@ -218,6 +224,36 @@ class sfPropelVersionableBehavior
 
 # ---- HELPER METHODS
 
+  /**
+   * Increments the version number of the current object or initializes it
+   *
+   * @param      BaseObject    $resource
+   */
+  public function incrementVersion(BaseObject $resource)
+  {
+    if ($version = $resource->getLastResourceVersion())
+    {
+      $resource->setVersion($version->getNumber() + 1);
+    }
+    else
+    {
+      $resource->setVersion(1);
+    }
+  }
+
+  /**
+   * Creates a new ResourceVersion record based on the object
+   *
+   * @param      BaseObject    $resource
+   */
+  public function createResourceVersion(BaseObject $resource)
+  {
+    $version = new ResourceVersion();
+    $version->populateFromObject($resource);
+    $version->setNumber($resource->getVersion());
+    $version->save();
+  }
+  
   /**
    * Returns a resource populated with attribute values of given version.
    * 
@@ -284,6 +320,11 @@ class sfPropelVersionableBehavior
    */
   public static function versionConditionMet(BaseObject $resource)
   {
+    if(!sfConfig::get('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true))
+    {
+      return false;
+    }
+    
     if (!$method = self::$condition_method)
     {
       $conf_directive = sprintf('propel_behavior_versionable_%s_conditional', get_class($resource));

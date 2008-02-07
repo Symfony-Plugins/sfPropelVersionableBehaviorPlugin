@@ -31,7 +31,7 @@ propel.builder.AddBehaviors = true
 <!-- schema.xml -->
 <column name="version" type="INTEGER" required="true" />
 or
-<!-- schema.yml -->
+# config/schema.yml
 version: { type: integer, required: true }
     }}}
     
@@ -167,6 +167,26 @@ It is possible to change this method at runtime :
 $previous_method = sfPropelVersionableBehavior::setVersionConditionMethod('myMethod');
 }}}
 
+Alternativley, you can choose to disable the automated creation of a new version at each save for all models by changing the application configuration:
+
+{{{
+# config/app.yml
+all:
+  sfPropelVersionableBehaviorPlugin:
+    auto_versioning: false
+}}}
+
+In this case, you still have the way to manually create a new version of an object:
+
+{{{
+#!php
+<?php
+
+$article->setTitle('Please version me even thoug auto_versioning is false');
+$article->addVersion();
+$article->save(); // article is saved and a new version is created
+}}}
+
 == Public API ==
 
 === Object API ===
@@ -177,6 +197,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `void delete()`: Deletes the object version history
  * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
  * `array getAllVersions()`: Returns all versions of the object in an ordered array
+ * `void addVersion()`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
  * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
  * `array getAllResourceVersions()`: Returns all version objects in an array
  
@@ -200,8 +221,9 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-02-06 | Trunk ===
+=== 2008-02-07 | Trunk ===
 
+ * francois: Added `addVersion` method and refactored the behavior to keep D.R.Y.
  * francois: More explicit documentation on installation
  * francois: Added a few unit tests
  * francois: Added a `getAllVersions` method returning an array of origin objects in a single query
