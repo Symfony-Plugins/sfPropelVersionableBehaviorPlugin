@@ -201,7 +201,7 @@ $article->addVersion('John Doe', 'Article creation');
 $article->save();
 
 $article->setTitle('A much better title');
-$article->addVersion('John Doe', 'I didn\'t ilke the previous title so much');
+$article->addVersion('John Doe', 'I didn\'t like the previous title so much');
 $article->save();
 }}}
 
@@ -215,8 +215,8 @@ foreach ($article->getAllResourceVersions() as $resourceVersion)
 {
    echo sprintf("Version %d, updated by %s on %s (%s)\n", 
                 $resourceVersion->getNumber(),
-                $resourceVersion->getUpdatedBy(),
-                $resourceVersion->getUpdatedAt(),
+                $resourceVersion->getCreatedBy(),
+                $resourceVersion->getCreatedAt(),
                 $resourceVersion->getComment(),
                 );
 }
@@ -268,6 +268,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 2008-02-08 | Trunk ===
 
+ * francois: Fixed error when trying to add a version to an unsaved object
  * francois: Fixed error when using a version column different than 'version'
  * francois: [BC Break] Added `comment`, `created_by` and `created_at` columns to the `ResourceVersion` class.
  * francois: Added `addVersion` method and refactored the behavior to keep D.R.Y.
