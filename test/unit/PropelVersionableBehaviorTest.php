@@ -73,11 +73,11 @@ ResourceAttributeVersionPeer::doDeleteAll();
 ResourceVersionPeer::doDeleteAll();
 
 // register behavior on test object
-sfPropelBehavior::add($test_class, array('versionable' => array(
+sfPropelBehavior::add($test_class, array('versionable' => array('columns' => array(
   'version'  => $test_class_version_column
-)));
+))));
 
-$t = new lime_test(30, new lime_output_color());
+$t = new lime_test(34, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -126,6 +126,20 @@ $r->setByName($test_class_title_column, 'this time, please version me, but manua
 $r->addVersion();
 $r->save();
 $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 3, 'addVersion() creates a new version even when app_sfPropelVersionableBehaviorPlugin_auto_versioning is set to off');
+
+$r2 = _create_resource();
+try
+{
+  $r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
+  $r2->addVersion('author1');
+  $r2->save();
+  $t->pass('calling addVersion() on an unsaved object does not throw an exception');
+} catch (Exception $e) {
+  $t->fail('calling addVersion() on an unsaved object does not throw an exception');
+}
+$t->is($r2->getLastResourceVersion()->getNumber(), 1, 'addVersion() creates a version object even on unsaved objects');
+
+
 sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
 try
 {
@@ -187,7 +201,7 @@ $r->delete();
 $t->is($r->getAllResourceVersions(), null, 'delete() also deletes resource version history');
 foreach($versions as $version)
 {
-  // These verison objects now have no counterpart in database, but they are a convenient way to get to the ResourceAttributeVersion objects
+  // These version objects now have no counterpart in database, but they are a convenient way to get to the ResourceAttributeVersion objects
   $t->is($version->getResourceAttributeVersions(), null, 'delete() also deletes resource attribute version history');
 }
 
@@ -201,6 +215,37 @@ $t->is($new_method, 'someMethod', 'setVersionConditionMethod() changes behavior\
 
 $original_method = sfPropelVersionableBehavior::setVersionConditionMethod('someOtherMethod');
 $t->is($original_method, 'someMethod', 'setVersionConditionMethod() returns previous method name');
+
+// Version details
+$t->diag('Version details');
+
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', false);
+$r = _create_resource();
+$r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
+$r->addVersion('author1');
+$r->save();
+$r->setByName($test_class_title_column, 'v2', BasePeer::TYPE_FIELDNAME);
+$r->addVersion(null, 'because you\'re worth it');
+$r->save();
+$r->setByName($test_class_title_column, 'v3', BasePeer::TYPE_FIELDNAME);
+$r->addVersion('author2', 'minor corrections');
+$r->save();
+$r->setByName($test_class_title_column, 'v4', BasePeer::TYPE_FIELDNAME);
+$r->addVersion();
+$r->save();
+$versionAuthors = array();
+$versionComments = array();
+$resourceVersions = $r->getAllResourceVersions();
+foreach ($resourceVersions as $resourceVersion)
+{
+  $versionAuthors  []= $resourceVersion->getCreatedBy();
+  $versionComments []= $resourceVersion->getComment();
+}
+$t->is($versionAuthors, array('author1', '', 'author2', ''), 'addVersion() accepts a $createdBy parameter');
+$t->is($versionComments, array('', 'because you\'re worth it', 'minor corrections', ''), 'addVersion() accepts a $comment parameter');
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
+
+
 
 // #1563 sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found
 $t->diag('#1563 : sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found');

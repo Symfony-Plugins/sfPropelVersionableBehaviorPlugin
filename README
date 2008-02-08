@@ -29,10 +29,10 @@ propel.builder.AddBehaviors = true
     {{{
 #!xml
 <!-- schema.xml -->
-<column name="version" type="INTEGER" required="true" />
+<column name="version" type="INTEGER" />
 or
 # config/schema.yml
-version: { type: integer, required: true }
+version: { type: integer }
     }}}
     
     Alternatively, you can choose another name that `version` and declare it in the behavior initialization. Even though, the behavior will still provide a `getVersion` and `setVersion` method for your versionable models.
@@ -182,10 +182,53 @@ In this case, you still have the way to manually create a new version of an obje
 #!php
 <?php
 
-$article->setTitle('Please version me even thoug auto_versioning is false');
+$article->setTitle('Please version me even though auto_versioning is false');
 $article->addVersion();
 $article->save(); // article is saved and a new version is created
 }}}
+
+=== Giving details about each revision ===
+
+For future reference, you probably need to record who edited an object, as well as when and why. If you use the manual `addVersion` process, just pass the author of the revision and the comment as parameters to the method call, as follows:
+
+{{{
+#!php
+<?php
+
+$article = new Article();
+$article->setTitle('Original title');
+$article->addVersion('John Doe', 'Article creation');
+$article->save();
+
+$article->setTitle('A much better title');
+$article->addVersion('John Doe', 'I didn\'t ilke the previous title so much');
+$article->save();
+}}}
+
+Details about each revision are available in the `ResourceVersion` objects that you can get via `getAllResourceVersions()`. For instance, if you want to display a history of modifications, you can do as follows:
+
+{{{
+#!php
+<?php
+
+foreach ($article->getAllResourceVersions() as $resourceVersion)
+{
+   echo sprintf("Version %d, updated by %s on %s (%s)\n", 
+                $resourceVersion->getNumber(),
+                $resourceVersion->getUpdatedBy(),
+                $resourceVersion->getUpdatedAt(),
+                $resourceVersion->getComment(),
+                );
+}
+
+/* 
+ * Outputs:
+ *
+ * Version 1, updated by John Doe on 2008-02-08 09:25:12 (Article Creation)
+ * Version 2, updated by John Doe on 2008-02-08 09:25:15 (I didn't like the previous title so much)
+ */
+}}}
+
 
 == Public API ==
 
@@ -197,15 +240,17 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `void delete()`: Deletes the object version history
  * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
  * `array getAllVersions()`: Returns all versions of the object in an ordered array
- * `void addVersion()`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
+ * `void addVersion(string $updatedBy, string $comment)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
  * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
  * `array getAllResourceVersions()`: Returns all version objects in an array
  
 === !ResourceVersion API ===
 
- * `BaseObject getResourceInstance()`: Returns resource instance populated with attributes from the version
- * `int getNumber()`: Returns the version number of the version object
-
+ * `BaseObject getResourceInstance()`: Returns resource instance populated with attributes from the revision
+ * `int getNumber()`: Returns the version number of the object revision
+ * `string getCreatedBy()`: Returns the author of the object revision
+ * `string getComment()`: Returns the comment of the object revision
+ * `mixed getCreatedAt(string $format)`: Returns the date of the object revision
 
 === sfPropelVersionableBehavior API ===
 
@@ -223,6 +268,8 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 2008-02-07 | Trunk ===
 
+ * francois: Fixed error when using a version column different than 'version'
+ * francois: [BC Break] Added `comment`, `created_by` and `created_at` columns to the `ResourceVersion` class.
  * francois: Added `addVersion` method and refactored the behavior to keep D.R.Y.
  * francois: More explicit documentation on installation
  * francois: Added a few unit tests

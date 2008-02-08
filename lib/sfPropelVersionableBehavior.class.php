@@ -146,15 +146,17 @@ class sfPropelVersionableBehavior
    * To be used when versionConditionMet() is false
    * 
    * @param      BaseObject   $resource
+   * @param      string   Optional name of the revision author
+   * @param      string   Optional comment about the revision
    */
-  public function addVersion(BaseObject $resource)
+  public function addVersion(BaseObject $resource, $createdBy = '', $comment = '')
   {
     if (self::versionConditionMet($resource))
     {
       throw new Exception("Impossible to use addVersion() when auto_versioning is on and versionConditionMet() is true");
     }
     self::incrementVersion($resource);
-    self::createResourceVersion($resource);
+    self::createResourceVersion($resource, $createdBy, $comment);
   }
 
 # ---- GETTERS & SETTERS
@@ -209,6 +211,12 @@ class sfPropelVersionableBehavior
     {
       self::createResourceVersion($resource);
     }
+    if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
+    {
+      $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
+      $resource->resourceVersion->save();
+      $resource->resourceVersion = null;
+    }
   }
   
   /**
@@ -245,13 +253,25 @@ class sfPropelVersionableBehavior
    * Creates a new ResourceVersion record based on the object
    *
    * @param      BaseObject    $resource
+   * @param      string   Optional name of the revision author
+   * @param      string   Optional comment about the revision
    */
-  public function createResourceVersion(BaseObject $resource)
+  public function createResourceVersion(BaseObject $resource, $createdBy = '', $comment = '')
   {
     $version = new ResourceVersion();
     $version->populateFromObject($resource);
     $version->setNumber($resource->getVersion());
-    $version->save();
+    $version->setCreatedBy($createdBy);
+    $version->setComment($comment);
+    if($resource->getPrimaryKey())
+    {
+      $version->save();
+    }
+    else
+    {
+      $resource->resourceVersion = $version;
+      // And leave it to the postSave() to save the version with the resource
+    }
   }
   
   /**
@@ -291,8 +311,8 @@ class sfPropelVersionableBehavior
   private static function forgeMethodName($resource, $prefix, $column)
   {
     $method_name = sprintf('%s%s', $prefix, 
-                                   $node->getPeer()->translateFieldName(self::getColumnConstant(get_class($resource), $column), 
-                                                                        BasePeer::TYPE_COLNAME, 
+                                   $resource->getPeer()->translateFieldName(self::getColumnConstant(get_class($resource), $column), 
+                                                                        BasePeer::TYPE_FIELDNAME, 
                                                                         BasePeer::TYPE_PHPNAME));
     return $method_name;
   }

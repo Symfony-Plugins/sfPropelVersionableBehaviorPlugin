@@ -3,9 +3,12 @@ propel:
 
   resource_version:
     id:
-    number:               { type: integer, size: 11, required: true, primaryKey: true }
     resource_id:          { type: integer, required: true }
     resource_name:        { type: varchar, size: 255, required: true }
+    number:               { type: integer, size: 11, required: true, primaryKey: true }
+    comment:              { type: longvarchar }
+    created_by:           { type: varchar, size: 255 }
+    created_at:
     _indexes:
       resource_version_index: [resource_id, resource_name]
 
