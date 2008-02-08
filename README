@@ -266,7 +266,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-02-07 | Trunk ===
+=== 2008-02-08 | Trunk ===
 
  * francois: Fixed error when using a version column different than 'version'
  * francois: [BC Break] Added `comment`, `created_by` and `created_at` columns to the `ResourceVersion` class.
@@ -277,6 +277,10 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * francois: [BC Break] Renamed `getAllVersions` to `getAllResourceVersions`
  * francois: [BC Break] Renamed `getLastVersions` to `getLastResourceVersion`
  * francois: [BC Break] Replaced uuid by a simple composite key class name + id
+
+=== 2008-02-08 | 0.2.3 alpha ===
+
+ * francois: Fixed error when using a version column different than 'version'
 
 === 2008-02-06 | 0.2.2 alpha ===
 
