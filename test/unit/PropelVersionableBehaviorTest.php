@@ -77,7 +77,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(34, new lime_output_color());
+$t = new lime_test(43, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -102,10 +102,31 @@ $r->setByName($test_class_title_column, 'V2', BasePeer::TYPE_FIELDNAME);
 $r->save();
 $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() increments the version number');
 
-// getLastResourceVersion()
-$t->diag('getLastResourceVersion()');
+// getLastResourceVersion() and getCurrentResourceVersion()
+$t->diag('getLastResourceVersion() and getCurrentResourceVersion()');
 
-$t->is($r->getLastResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastVersion() returns last version of resource');
+$t->is($r->getLastResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastResourceVersion() returns last version of resource');
+$t->is($r->getCurrentResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getCurrentResourceVersion() returns current version of resource');
+$r->toVersion(1);
+$t->is($r->getLastResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V2', 'getLastResourceVersion() returns last version of resource');
+$t->is($r->getCurrentResourceVersion()->getResourceInstance()->getByName($test_class_title_column, BasePeer::TYPE_FIELDNAME), 'V1', 'getCurrentResourceVersion() returns current version of resource');
+$r->toVersion(2);
+
+// setVersionComment() and setVersionUpdatedBy
+$t->diag('setVersionComment() and setVersionCreatedBy');
+
+$r2 = _create_resource();
+$r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
+$r2->setVersionCreatedBy('foo');
+$r2->setVersionComment('bar');
+$r2->save();
+$r3 = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r2->getPrimaryKey());
+$t->is($r2->getCurrentResourceVersion()->getCreatedBy(), 'foo', 'setVersionCreatedBy() defines the author name to be saved in the ResourceVersion object');
+$t->is($r2->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() returns the creation date of the revision');
+$t->is($r3->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() is a proxy method for getCurrentResourceVersion()->getCreatedBy()');
+$t->is($r2->getLastResourceVersion()->getComment(), 'bar', 'setVersionComment() defines the comment to be saved in the ResourceVersion object');
+$t->is($r2->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
+$t->is($r3->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
 
 // conditional versioning
 $t->diag('conditional versioning');

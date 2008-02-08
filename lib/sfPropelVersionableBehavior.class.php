@@ -77,7 +77,23 @@ class sfPropelVersionableBehavior
     
     return ResourceVersionPeer::doSelectOne($c);
   }
- 
+
+  /**
+   * Returns current version of resource.
+   * 
+   * @param      BaseObject    $resource
+   * @return     ResourceVersion
+   */
+  public function getCurrentResourceVersion(BaseObject $resource)
+  {
+    $c = new Criteria();
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->add(ResourceVersionPeer::NUMBER, $resource->getVersion());
+    
+    return ResourceVersionPeer::doSelectOne($c);
+  }
+   
   /**
    * Returns all ResourceVersion instances related to the object, ordered by version asc.
    * 
@@ -184,7 +200,81 @@ class sfPropelVersionableBehavior
     $setter = self::forgeMethodName($resource, 'set', 'version');
     return $resource->$setter($version_number);    
   }
+  
+  /**
+   * Sets resource version comment. Temporarily stored in the resource itself.
+   * 
+   * @param      BaseObject    $resource
+   * @param      string        $comment
+   */
+  public function setVersionComment(BaseObject $resource, $comment)
+  {
+    $resource->versionComment = $comment;
+  }
 
+  /**
+   * Gets resource version comment.
+   * 
+   * @param      BaseObject    $resource
+   *
+   * @return     string
+   */
+  public function getVersionComment(BaseObject $resource)
+  {
+    if(isset($resource->versionComment))
+    {
+      return $resource->versionComment;
+    }
+    else
+    {
+      return $resource->getCurrentResourceVersion()->getComment();
+    }
+  }
+
+  /**
+   * Sets resource version author. Temporarily stored in the resource itself
+   * 
+   * @param      BaseObject    $resource
+   * @param      string        $createdBy
+   */
+
+  public function setVersionCreatedBy(BaseObject $resource, $createdBy)
+  {
+    $resource->versionCreatedBy = $createdBy;
+  }
+
+  /**
+   * Gets resource version author.
+   * 
+   * @param      BaseObject    $resource
+   *
+   * @return     string
+   */
+  public function getVersionCreatedBy(BaseObject $resource)
+  {
+    if(isset($resource->versionCreatedBy))
+    {
+      return $resource->versionCreatedBy;
+    }
+    else
+    {
+      return $resource->getCurrentResourceVersion()->getCreatedBy();
+    }
+  }
+
+  /**
+   * Proxy method for getting resource version creation date.
+   * But you'd better define an 'updated_at' column directly in the resource
+   * 
+   * @param      BaseObject    $resource
+   *
+   * @return     string
+   */
+  public function getVersionCreatedAt(BaseObject $resource, $format = 'Y-m-d H:i:s')
+  {
+    return $resource->getCurrentResourceVersion()->getCreatedAt($format);
+  }
+  
 # ---- HOOKS
 
   /**
@@ -209,7 +299,7 @@ class sfPropelVersionableBehavior
   {
     if (self::versionConditionMet($resource))
     {
-      self::createResourceVersion($resource);
+      self::createResourceVersion($resource, isset($resource->versionCreatedBy) ? $resource->versionCreatedBy : '', isset($resource->versionComment) ? $resource->versionComment : '');
     }
     if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
     {
@@ -237,7 +327,7 @@ class sfPropelVersionableBehavior
    *
    * @param      BaseObject    $resource
    */
-  public function incrementVersion(BaseObject $resource)
+  public static function incrementVersion(BaseObject $resource)
   {
     if ($version = $resource->getLastResourceVersion())
     {
@@ -256,14 +346,14 @@ class sfPropelVersionableBehavior
    * @param      string   Optional name of the revision author
    * @param      string   Optional comment about the revision
    */
-  public function createResourceVersion(BaseObject $resource, $createdBy = '', $comment = '')
+  public static function createResourceVersion(BaseObject $resource, $createdBy = '', $comment = '')
   {
     $version = new ResourceVersion();
     $version->populateFromObject($resource);
     $version->setNumber($resource->getVersion());
     $version->setCreatedBy($createdBy);
     $version->setComment($comment);
-    if($resource->getPrimaryKey())
+    if(!$resource->isNew())
     {
       $version->save();
     }
