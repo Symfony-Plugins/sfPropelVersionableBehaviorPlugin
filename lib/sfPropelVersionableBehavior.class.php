@@ -172,6 +172,16 @@ class sfPropelVersionableBehavior
       throw new Exception("Impossible to use addVersion() when auto_versioning is on and versionConditionMet() is true");
     }
     self::incrementVersion($resource);
+    if(!$createdBy && isset($resource->versionCreatedBy) && $resource->versionCreatedBy != '')
+    {
+      $createdBy = $resource->versionCreatedBy;
+      $resource->versionCreatedBy = '';
+    }
+    if(!$comment && isset($resource->versionComment) && $resource->versionComment != '')
+    {
+      $comment = $resource->versionComment;
+      $resource->versionComment = '';
+    }
     self::createResourceVersion($resource, $createdBy, $comment);
   }
 
@@ -221,7 +231,7 @@ class sfPropelVersionableBehavior
    */
   public function getVersionComment(BaseObject $resource)
   {
-    if(isset($resource->versionComment))
+    if(isset($resource->versionComment) && $resource->versionComment)
     {
       return $resource->versionComment;
     }
@@ -252,7 +262,7 @@ class sfPropelVersionableBehavior
    */
   public function getVersionCreatedBy(BaseObject $resource)
   {
-    if(isset($resource->versionCreatedBy))
+    if(isset($resource->versionCreatedBy) && $resource->versionCreatedBy)
     {
       return $resource->versionCreatedBy;
     }
@@ -299,7 +309,19 @@ class sfPropelVersionableBehavior
   {
     if (self::versionConditionMet($resource))
     {
-      self::createResourceVersion($resource, isset($resource->versionCreatedBy) ? $resource->versionCreatedBy : '', isset($resource->versionComment) ? $resource->versionComment : '');
+      $createdBy = '';
+      $comment = '';
+      if(isset($resource->versionCreatedBy) && $resource->versionCreatedBy != '')
+      {
+        $createdBy = $resource->versionCreatedBy;
+        $resource->versionCreatedBy = '';
+      }
+      if(isset($resource->versionComment) && $resource->versionComment != '')
+      {
+        $comment = $resource->versionComment;
+        $resource->versionComment = '';
+      }
+      self::createResourceVersion($resource, $createdBy, $comment);
     }
     if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
     {

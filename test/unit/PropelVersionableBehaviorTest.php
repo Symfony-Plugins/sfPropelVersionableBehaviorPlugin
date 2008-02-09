@@ -77,7 +77,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(43, new lime_output_color());
+$t = new lime_test(49, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -124,9 +124,14 @@ $r3 = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r2->
 $t->is($r2->getCurrentResourceVersion()->getCreatedBy(), 'foo', 'setVersionCreatedBy() defines the author name to be saved in the ResourceVersion object');
 $t->is($r2->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() returns the creation date of the revision');
 $t->is($r3->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() is a proxy method for getCurrentResourceVersion()->getCreatedBy()');
-$t->is($r2->getLastResourceVersion()->getComment(), 'bar', 'setVersionComment() defines the comment to be saved in the ResourceVersion object');
+$t->is($r2->getCurrentResourceVersion()->getComment(), 'bar', 'setVersionComment() defines the comment to be saved in the ResourceVersion object');
 $t->is($r2->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
 $t->is($r3->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
+$r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
+$r2->save();
+$resourceVersion = $r2->getCurrentResourceVersion();
+$t->is($resourceVersion->getCreatedBy(), '', 'setVersionCreatedBy() only affects the next version saved');
+$t->is($resourceVersion->getComment(), '', 'setVersionComment() only affects the next version saved');
 
 // conditional versioning
 $t->diag('conditional versioning');
@@ -152,13 +157,29 @@ $r2 = _create_resource();
 try
 {
   $r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
-  $r2->addVersion('author1');
+  $r2->addVersion();
   $r2->save();
   $t->pass('calling addVersion() on an unsaved object does not throw an exception');
 } catch (Exception $e) {
   $t->fail('calling addVersion() on an unsaved object does not throw an exception');
 }
 $t->is($r2->getLastResourceVersion()->getNumber(), 1, 'addVersion() creates a version object even on unsaved objects');
+
+$r2->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
+$r2->setVersionCreatedBy('author2');
+$r2->setVersionComment('baz');
+$r2->addVersion();
+$r2->save();
+$resourceVersion = $r2->getCurrentResourceVersion();
+$t->is($resourceVersion->getCreatedBy(), 'author2', 'addVersion() allows for use of setVersionCreatedBy()');
+$t->is($resourceVersion->getComment(), 'baz', 'addVersion() allows for use of setVersionComment()');
+
+$r2->setByName($test_class_title_column, 'v2', BasePeer::TYPE_FIELDNAME);
+$r2->addVersion('author3', 'bazz');
+$r2->save();
+$resourceVersion = $r2->getCurrentResourceVersion();
+$t->is($resourceVersion->getCreatedBy(), 'author3', 'addVersion() accepts a version author name as first parameter');
+$t->is($resourceVersion->getComment(), 'bazz', 'addVersion() accepts a version comment as second parameter');
 
 
 sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);

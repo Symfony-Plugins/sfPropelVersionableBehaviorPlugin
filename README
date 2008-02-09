@@ -303,7 +303,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-02-08 | Trunk ===
+=== 2008-02-09 | Trunk ===
 
  * francois: Added `getCurrentResourceVersion`, `setResourceCreatedBy`, `getResourceCreatedBy`, `setResourceComment` and `getResourceComment` methods to the public API
  * francois: Fixed error when trying to add a version to an unsaved object
