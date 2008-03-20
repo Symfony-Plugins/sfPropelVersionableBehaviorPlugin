@@ -40,6 +40,7 @@
           <file name="ResourceVersion.php" role="data"/>
         </dir>
         <file name="sfPropelVersionableBehavior.class.php" role="data"/>
+        <file name="SfVersionableObjectBuilder.php" role="data"/>
       </dir>
     </dir>
   </contents>

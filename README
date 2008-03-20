@@ -260,6 +260,103 @@ $article->addVersion('John Doe', 'Article creation');
 $article->save();
 }}}
 
+=== Versioning Related objects ===
+
+If you use the manual `addVersion()`, you can specify that you want related objects to be versioned together with the main object. For instance, imagine an `Article` model with a many-to-one relationship to a `Category` model:
+
+{{{
+#!php
+<?php
+
+$article = new Article();
+$article->setTitle('Original title');
+$category = new Category();
+$category->setName('Category1');
+$article->setCategory($category);
+// Explicitly ask to include the `Category` object in the versioning process
+$article->addVersion('author1', 'comment1', array('Category'));
+$article->save();
+$article->setTitle('Modified title');
+$category = new Category();
+$category->setName('Category1');
+$article->setCategory($category);
+// Explicitly ask to include the `Category` object in the versioning process
+$article->addVersion('author2', 'comment2', array('Category'));
+$article->save();
+
+$article->toVersion(1);
+echo $article->getCategory()->getName();    // 'Category1'
+$article->toVersion(2);
+echo $article->getCategory()->getName();    // 'Category2'
+}}}
+
+The same works for one-to-many relationhips, with a trick. For instance, if the `Article` model can have many `Comments`:
+
+{{{
+#!php
+<?php
+
+$article = new Article();
+$article->setTitle('Original title');
+$comment1 = new Comment();
+$comment1->setContent('Comment1');
+$article->addComment($comment1);
+$comment2 = new Comment();
+$comment2->setContent('Comment2');
+$article->addComment($comment2);
+// Explicitly ask to include the `Comment` objects in the versioning process
+$article->addVersion('author1', 'comment1', array('Comments'));
+$article->save();
+
+$article->setTitle('Modified title');
+$comment1->setContent('Comment1 Modified');
+$comment1->save();
+$comment2->setContent('Comment2 Modified');
+$comment2->save();
+// Explicitly ask to include the `Comment` objects in the versioning process
+$article->addVersion('author2', 'comment2', array('Comments'));
+$article->save();
+
+$comments = $article->toVersion(1)->getComments();
+echo $comments[0]->getContent();    // 'Comment1'
+echo $comments[1]->getContent();    // 'Comment2'
+$comments = $article->toVersion(2)->getComments();
+echo $comments[0]->getContent();    // 'Comment1 Modified'
+echo $comments[1]->getContent();    // 'Comment2 Modified'
+}}}
+
+Note: For the one-to-many versioning to work, you need to override the base object `initXXX()` method. In the above example, you must override the `Article::initComments()` method from:
+
+{{{
+// in BaseArticle.php
+public function initComments()
+{
+  if ($this->collComments === null) {
+    $this->collComments = array();
+  }
+}
+}}}
+
+to:
+
+{{{
+// in Article.php
+public function initComments($force = false)
+{
+  if ($this->collComments === null || $force) {
+    $this->collComments = array();
+  }
+}
+}}}
+
+This modification should not affect the rest of your model.
+
+Alternatively, if you prefer to let the Propel generator modify your `initXXX()` methods automatically for all models, you just need to change one line in your `propel.ini` and rebuild your model:
+
+{{{
+propel.builder.object.class            = plugins.sfPropelVersionableBehaviorPlugin.lib.SfVersionableObjectBuilder
+}}}
+
 == Public API ==
 
 === Object API ===
@@ -270,7 +367,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `void delete()`: Deletes the object version history
  * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
  * `array getAllVersions()`: Returns all versions of the object in an ordered array
- * `void addVersion(string $updatedBy, string $comment)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
+ * `void addVersion(string $updatedBy, string $comment, array $withObjects)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
  * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
  * `ResourceVersion getCurrentResourceVersion()`: Returns the object's current version object
  * `array getAllResourceVersions()`: Returns all version objects in an array
@@ -303,8 +400,10 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-02-09 | Trunk ===
+=== 2008-03-20 | Trunk ===
 
+ * francois: Added support for related objects versioning (only via `addVersion` for now)
+ * francois: [BC Break] Added a `resource_version_id` column to the `resource_version` column
  * francois: Fixed error when using 'addVersion' on a new object (primary and foreign keys were not saved)
  * francois: Added `getCurrentResourceVersion`, `setResourceCreatedBy`, `getResourceCreatedBy`, `setResourceComment` and `getResourceComment` methods to the public API
  * francois: Fixed error when trying to add a version to an unsaved object

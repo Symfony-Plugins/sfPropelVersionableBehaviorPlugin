@@ -166,8 +166,9 @@ class sfPropelVersionableBehavior
    * @param      BaseObject   $resource
    * @param      string   Optional name of the revision author
    * @param      string   Optional comment about the revision
+   * @param      array    Optional list of related object classes to version together with the main object
    */
-  public function addVersion(BaseObject $resource, $createdBy = '', $comment = '')
+  public function addVersion(BaseObject $resource, $createdBy = '', $comment = '', $withObjects = array())
   {
     if (self::versionConditionMet($resource))
     {
@@ -185,6 +186,12 @@ class sfPropelVersionableBehavior
       $resource->versionComment = '';
     }
     $resource->resourceVersion = self::createResourceVersion($resource, $createdBy, $comment);
+    // resourceVersion will be saved in the postSave() method, when the resource has primary and foreign key determined
+    
+    if($withObjects)
+    {
+      $resource->versionWithObjects = $withObjects;
+    }
   }
 
 # ---- GETTERS & SETTERS
@@ -327,8 +334,9 @@ class sfPropelVersionableBehavior
     }
     if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
     {
+      $withObjects = isset($resource->versionWithObjects) ? $resource->versionWithObjects : array();
       $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
-      $resource->resourceVersion->populateFromObject($resource);
+      $resource->resourceVersion->populateFromObject($resource, $withObjects);
       $resource->resourceVersion->save();
       $resource->resourceVersion = null;
     }
@@ -390,6 +398,7 @@ class sfPropelVersionableBehavior
    */
   public static function populateResourceFromVersion(BaseObject $resource, BaseObject $version)
   {
+    // hydrate the main resource
     foreach ($version->getResourceAttributeVersions() as $attrib_version)
     {
       $attrib_name = $attrib_version->getAttributeName();
@@ -397,13 +406,44 @@ class sfPropelVersionableBehavior
       
       if (!method_exists($resource, $setter))
       {
-        $msg = sprintf('Impossible to set attribute "%s" on resource "%s"', 
-                      $attrib_name, get_class($resource));
-        throw new Exception($msg);
+        throw new Exception(sprintf('Impossible to set attribute "%s" on resource "%s"', $attrib_name, get_class($resource)));
       }
       $resource->$setter($attrib_version->getAttributeValue());
     }
-
+    
+    if ($relatedResourceVersions = $version->getResourceVersionsRelatedByResourceVersionId())
+    {
+      // Need to hydrate related objects, too, and to attach them to the main resource
+      $reinits = array();
+      foreach ($relatedResourceVersions as $relatedResourceVersion)
+      {
+        $relatedResourceClass = $relatedResourceVersion->getResourceName();
+        $relatedResource = new $relatedResourceClass();
+        self::populateResourceFromVersion($relatedResource, $relatedResourceVersion);
+        if (method_exists($resource, 'add'.$relatedResourceClass))
+        {
+          // one-to-many relationship
+          if (!in_array($relatedResourceClass, $reinits))
+          {
+            // This is the only way to trick Propel objects
+            // Into not calling the database for one-to-many relationships getters
+            $getter = 'get'.$relatedResourceClass.'s';
+            $resource->$getter();
+            $initer = 'init'.$relatedResourceClass.'s';
+            $resource->$initer(true);
+            $reinits[] = $relatedResourceClass;
+          }
+          $setter = 'add'.$relatedResourceClass;
+        }
+        else
+        {
+          // one-to-one or many_to_one relationship
+          $setter = 'set'.$relatedResourceClass;
+        }
+        // Associate the new related object to the main resource
+        $resource->$setter($relatedResource);
+      }
+    }
     
     return $resource;
   }

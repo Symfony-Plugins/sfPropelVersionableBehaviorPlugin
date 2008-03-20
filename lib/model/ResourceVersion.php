@@ -20,12 +20,16 @@ class ResourceVersion extends BaseResourceVersion
    * Populates version properties and creates necessary entries in the resource_attribute_version table.
    * 
    * @param      BaseObject    $resource
+   * @param      Array         $withObjects      Optional list of object classes to create and attach to the current resource
    */
-  public function populateFromObject(BaseObject $resource)
+  public function populateFromObject(BaseObject $resource, $withObjects = array(), $withVersion = true)
   {
     $this->setResourceId($resource->getPrimaryKey());
     $this->setResourceName(get_class($resource));
-    $this->setNumber($resource->getVersion());
+    if($withVersion)
+    {
+      $this->setNumber($resource->getVersion());
+    }
     
     foreach ($resource->getPeer()->getFieldNames() as $attribute_name)
     {
@@ -34,6 +38,21 @@ class ResourceVersion extends BaseResourceVersion
       $attribute_version->setAttributeName($attribute_name);
       $attribute_version->setAttributeValue($resource->$getter());
       $this->addResourceAttributeVersion($attribute_version);
+    }
+    foreach($withObjects as $resourceName)
+    {
+      $getter = sprintf('get%s', $resourceName);
+      $relatedResources = $resource->$getter();
+      if(!is_array($relatedResources))
+      {
+        $relatedResources = array($relatedResources);
+      }
+      foreach ($relatedResources as $relatedResource)
+      {
+        $resourceVersion = new ResourceVersion();
+        $resourceVersion->populateFromObject($relatedResource, array(), false);
+        $this->addResourceVersionRelatedByResourceVersionId($resourceVersion);
+      }
     }
   }
 

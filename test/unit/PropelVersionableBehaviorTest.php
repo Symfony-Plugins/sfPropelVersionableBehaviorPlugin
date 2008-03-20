@@ -40,22 +40,46 @@ $sf_path = dirname(__FILE__).'/../../../..';
 include($sf_path . '/test/bootstrap/functional.php');
 
 /*
+You need a model built with a running database to run these tests.
+The tests expect a model similar to this one:
+
+    propel:
+      article:
+        id:
+        version: integer
+        title: varchar(255)
+        category_id:
+      category:
+        id:
+        name: varchar(255)
+      comment:
+        id:
+        content: varchar(255)
+        article_id:
+
+Beware that the tables for these models will be emptied by the tests.
 You can override the model class and columns the tests should use in your app.yml
-all:
-  sfPropelVersionableBehaviorPlugin:
-    test_class:          Article
-    test_version_column: version
-    test_title_column:   title
+
+    all:
+      sfPropelVersionableBehaviorPlugin:
+        test_class:               Article
+        test_version_column:      version
+        test_title_column:        title
+        test_n_1_class:           Category
+        test_n_1_name_column:     name
+        test_1_n_class:           Comment
+        test_1_n_content_column:  content
+
 For the tests to run, your class must hav the following method:
+
     public function versionConditionMet()
     {
       return $this->getTitle() != 'do not version me';
     }
 */
-$test_class = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_class', 'Post');
+$test_class = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_class', 'Article');
 $test_class_version_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_version_column', 'version');
 $test_class_title_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_title_column', 'title');
-
 
 // create a new test browser
 $browser = new sfTestBrowser();
@@ -77,7 +101,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(51, new lime_output_color());
+$t = new lime_test(56, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -294,7 +318,67 @@ $t->is($versionAuthors, array('author1', '', 'author2', ''), 'addVersion() accep
 $t->is($versionComments, array('', 'because you\'re worth it', 'minor corrections', ''), 'addVersion() accepts a $comment parameter');
 sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
 
+// Related objects
+$t->diag('Related objects');
 
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', false);
+
+$test_n_1_class = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_n_1_class', 'Category');
+$test_n_1_name_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_n_1_name_column', 'name');
+$test_n_1_setter = 'set'.$test_n_1_class;
+$test_n_1_getter = 'get'.$test_n_1_class;
+call_user_func(array($test_n_1_class.'Peer', 'doDeleteAll'));
+
+$r = _create_resource();
+$r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
+$category = new $test_n_1_class();
+$category->setByName($test_n_1_name_column, 'Category1', BasePeer::TYPE_FIELDNAME);
+$r->$test_n_1_setter($category);
+$r->addVersion('author1', 'comment1', array('Category'));
+$r->save();
+$r = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r->getPrimaryKey());
+$r->setByName($test_class_title_column, 'v2', BasePeer::TYPE_FIELDNAME);
+$category->setByName($test_n_1_name_column, 'Category2', BasePeer::TYPE_FIELDNAME);
+$category->save();
+$r->addVersion('author2', 'comment2', array($test_n_1_class));
+$r->save();
+$r->toVersion(1);
+$t->is($r->$test_n_1_getter()->getByName($test_n_1_name_column, BasePeer::TYPE_FIELDNAME), 'Category1', 'addVersion() allows to save objects related by a n-1 relationship');
+
+$test_1_n_class = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_1_n_class', 'Comment');
+$test_1_n_content_column = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_1_n_content_column', 'content');
+$test_1_n_adder = 'add'.$test_1_n_class;
+$test_1_n_getter = 'get'.$test_1_n_class.'s';
+call_user_func(array($test_1_n_class.'Peer', 'doDeleteAll'));
+
+$r = _create_resource();
+$r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
+$comment1 = new $test_1_n_class();
+$comment1->setByName($test_1_n_content_column, 'Comment1', BasePeer::TYPE_FIELDNAME);
+$r->$test_1_n_adder($comment1);
+$comment2 = new $test_1_n_class();
+$comment2->setByName($test_1_n_content_column, 'Comment2', BasePeer::TYPE_FIELDNAME);
+$r->$test_1_n_adder($comment2);
+$r->addVersion('foo', 'bar', array($test_1_n_class.'s'));
+$r->save();
+$r = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r->getPrimaryKey());
+$r->setByName($test_class_title_column, 'v2', BasePeer::TYPE_FIELDNAME);
+$comment1->setByName($test_1_n_content_column, 'Comment1 modified', BasePeer::TYPE_FIELDNAME);
+$comment1->save();
+$comment2->setByName($test_1_n_content_column, 'Comment2 modified', BasePeer::TYPE_FIELDNAME);
+$comment2->save();
+$r->addVersion('foo', 'another bar', array($test_1_n_class.'s'));
+$r->save();
+$r = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r->getPrimaryKey());
+$r->toVersion(1);
+$comments = $r->$test_1_n_getter();
+$t->is($comments[0]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAME), 'Comment1', 'addVersion() allows to save objects related by a 1-n relationship');
+$t->is($comments[1]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAME), 'Comment2', 'addVersion() allows to save objects related by a 1-n relationship');
+$r->toVersion(2);
+$comments = $r->$test_1_n_getter();
+$t->is($comments[0]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAME), 'Comment1 modified', 'addVersion() allows to save objects related by a 1-n relationship');
+$t->is($comments[1]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAME), 'Comment2 modified', 'addVersion() allows to save objects related by a 1-n relationship');
+sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
 
 // #1563 sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found
 $t->diag('#1563 : sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found');
