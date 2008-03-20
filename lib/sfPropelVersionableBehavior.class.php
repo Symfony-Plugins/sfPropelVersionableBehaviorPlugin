@@ -105,6 +105,7 @@ class sfPropelVersionableBehavior
     $c = new Criteria();
     $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
     $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->add(ResourceVersionPeer::NUMBER, null, Criteria::ISNOTNULL);
     $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
     
     return ResourceVersionPeer::doSelect($c);
@@ -121,6 +122,7 @@ class sfPropelVersionableBehavior
     $c = new Criteria();
     $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
     $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->add(ResourceVersionPeer::NUMBER, null, Criteria::ISNOTNULL);
     $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
     $c->addJoin(ResourceAttributeVersionPeer::RESOURCE_VERSION_ID, ResourceVersionPeer::ID);
     $attributes = ResourceAttributeVersionPeer::doSelect($c);
@@ -182,7 +184,7 @@ class sfPropelVersionableBehavior
       $comment = $resource->versionComment;
       $resource->versionComment = '';
     }
-    self::createResourceVersion($resource, $createdBy, $comment);
+    $resource->resourceVersion = self::createResourceVersion($resource, $createdBy, $comment);
   }
 
 # ---- GETTERS & SETTERS
@@ -321,11 +323,12 @@ class sfPropelVersionableBehavior
         $comment = $resource->versionComment;
         $resource->versionComment = '';
       }
-      self::createResourceVersion($resource, $createdBy, $comment);
+      $resource->resourceVersion = self::createResourceVersion($resource, $createdBy, $comment);
     }
     if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
     {
       $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
+      $resource->resourceVersion->populateFromObject($resource);
       $resource->resourceVersion->save();
       $resource->resourceVersion = null;
     }
@@ -370,20 +373,12 @@ class sfPropelVersionableBehavior
    */
   public static function createResourceVersion(BaseObject $resource, $createdBy = '', $comment = '')
   {
-    $version = new ResourceVersion();
-    $version->populateFromObject($resource);
-    $version->setNumber($resource->getVersion());
-    $version->setCreatedBy($createdBy);
-    $version->setComment($comment);
-    if(!$resource->isNew())
-    {
-      $version->save();
-    }
-    else
-    {
-      $resource->resourceVersion = $version;
-      // And leave it to the postSave() to save the version with the resource
-    }
+    $resourceVersion = new ResourceVersion();
+    $resourceVersion->setNumber($resource->getVersion());
+    $resourceVersion->setCreatedBy($createdBy);
+    $resourceVersion->setComment($comment);
+    
+    return $resourceVersion;
   }
   
   /**

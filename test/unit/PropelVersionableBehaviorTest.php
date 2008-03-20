@@ -77,7 +77,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(49, new lime_output_color());
+$t = new lime_test(51, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -181,6 +181,13 @@ $resourceVersion = $r2->getCurrentResourceVersion();
 $t->is($resourceVersion->getCreatedBy(), 'author3', 'addVersion() accepts a version author name as first parameter');
 $t->is($resourceVersion->getComment(), 'bazz', 'addVersion() accepts a version comment as second parameter');
 
+$r2 = _create_resource();
+$r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
+$r2->addVersion();
+$r2->save();
+$id = $r2->getId();
+$r2->toVersion(1);
+$t->is($r2->getId(), $id, 'addVersion() also saves primary keys of new objects');
 
 sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
 try
