@@ -101,7 +101,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(57, new lime_output_color());
+$t = new lime_test(59, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -136,6 +136,16 @@ $c->add(ResourceAttributeVersionHashPeer::IS_MODIFIED, true);
 $c->addJoin(ResourceAttributeVersionHashPeer::RESOURCE_ATTRIBUTE_VERSION_ID, ResourceAttributeVersionPeer::ID);
 // Only 2 columns should be saved during the last save(): the title, and the version of course!
 $t->is(ResourceAttributeVersionPeer::doCount($c), 2, 'Only modified columns are saved');
+$r->setByName($test_class_title_column, 'V2', BasePeer::TYPE_FIELDNAME);
+$r->save();
+$t->is($r->getVersion(), 2, 'Only modified objects are saved');
+$c = new Criteria();
+$c->add(ResourceVersionPeer::RESOURCE_ID, $r->getPrimaryKey());
+$c->add(ResourceVersionPeer::NUMBER, 3);
+$c->addJoin(ResourceVersionPeer::ID, ResourceAttributeVersionHashPeer::RESOURCE_VERSION_ID);
+$c->addJoin(ResourceAttributeVersionHashPeer::RESOURCE_ATTRIBUTE_VERSION_ID, ResourceAttributeVersionPeer::ID);
+// No columns should be saved during the last save(): nothing has changed
+$t->is(ResourceAttributeVersionPeer::doCount($c), 0, 'Only modified objects are saved');
 
 // getLastResourceVersion() and getCurrentResourceVersion()
 $t->diag('getLastResourceVersion() and getCurrentResourceVersion()');
@@ -157,12 +167,12 @@ $r2->setVersionComment('bar');
 $r2->save();
 $r3 = call_user_func(array(_create_resource()->getPeer(), 'retrieveByPk'), $r2->getPrimaryKey());
 $t->is($r2->getCurrentResourceVersion()->getCreatedBy(), 'foo', 'setVersionCreatedBy() defines the author name to be saved in the ResourceVersion object');
-$t->is($r2->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() returns the creation date of the revision');
+$t->is($r2->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() returns the author of the revision');
 $t->is($r3->getVersionCreatedBy(), 'foo', 'getVersionCreatedBy() is a proxy method for getCurrentResourceVersion()->getCreatedBy()');
 $t->is($r2->getCurrentResourceVersion()->getComment(), 'bar', 'setVersionComment() defines the comment to be saved in the ResourceVersion object');
 $t->is($r2->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
 $t->is($r3->getVersionComment(), 'bar', 'getVersionComment() is a proxy method for getCurrentResourceVersion()->getComment()');
-$r2->setByName($test_class_title_column, 'v0', BasePeer::TYPE_FIELDNAME);
+$r2->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
 $r2->save();
 $resourceVersion = $r2->getCurrentResourceVersion();
 $t->is($resourceVersion->getCreatedBy(), '', 'setVersionCreatedBy() only affects the next version saved');

@@ -316,7 +316,8 @@ class sfPropelVersionableBehavior
    */
   public function preSave(BaseObject $resource)
   {
-    if (self::versionConditionMet($resource))
+    $resource->wasModified = $resource->isModified();
+    if ($resource->wasModified && self::versionConditionMet($resource))
     {
       self::incrementVersion($resource);
     }
@@ -341,7 +342,7 @@ class sfPropelVersionableBehavior
    */
   public function postSave(BaseObject $resource)
   {
-    if (self::versionConditionMet($resource))
+    if ($resource->wasModified && self::versionConditionMet($resource))
     {
       $createdBy = '';
       $comment = '';
@@ -365,6 +366,8 @@ class sfPropelVersionableBehavior
       $resource->resourceVersion->save();
       $resource->resourceVersion = null;
     }
+    unset($resource->versionModifiedColumns);
+    unset($resource->wasModified);
   }
   
   /**

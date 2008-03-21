@@ -419,6 +419,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 0.4 ===
 
+ * Allow the definition of related objects to save during behavior declaration
  * Make plugin compatible with sfPropel's i18n capabilities
  * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
@@ -426,9 +427,10 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 2008-03-21 | Trunk ===
 
+ * francois: Avoid saving unchanged records to save database space (refs #3150)
  * francois: Added `ResourceAttributeVersion::getResourceVersions()` method
  * francois: Added `ResourceVersion::getResourceVersion()` method
- * francois: Avoid saving unchanged columns and records to save database space
+ * francois: Avoid saving unchanged columns to save database space
  * francois: [BC Break] Added a `resource_attribute_version_hash` table, now middle table between versions and attributes
  
 === 2008-03-21 | 0.3.0 beta ===
