@@ -16,14 +16,14 @@
     <email>francois.zaninotto@symfony-project.com</email>
     <active>yes</active>
   </developer>
-  <date>2008-02-06</date>
+  <date>2008-03-21</date>
   <version>
-    <release>0.2.2</release>
-    <api>0.2.2</api>
+    <release>0.3.0</release>
+    <api>0.3.0</api>
   </version>
   <stability>
-    <release>alpha</release>
-    <api>alpha</api>
+    <release>beta</release>
+    <api>beta</api>
   </stability>
   <license uri="http://www.symfony-project.com/license">MIT license</license>
   <notes>-</notes>
@@ -64,6 +64,35 @@
   <changelog>
     <release>
       <version>
+        <release>0.3.0</release>
+        <api>0.3.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2008-03-21</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
+* francois: [BC Break] Added a `title` column to the `resource_version` table and support for resource title
+* francois: Added support for related objects versioning (only via `addVersion` for now)
+* francois: [BC Break] Added a `resource_version_id` column to the `resource_version` table
+* francois: Fixed error when using 'addVersion' on a new object (primary and foreign keys were not saved)
+* francois: Added `getCurrentResourceVersion`, `setResourceCreatedBy`, `getResourceCreatedBy`, `setResourceComment` and `getResourceComment` methods to the public API
+* francois: Fixed error when trying to add a version to an unsaved object
+* francois: Fixed error when using a version column different than 'version'
+* francois: [BC Break] Added `comment`, `created_by` and `created_at` columns to the `ResourceVersion` class.
+* francois: Added `addVersion` method and refactored the behavior to keep D.R.Y.
+* francois: More explicit documentation on installation
+* francois: Added a few unit tests
+* francois: Added a `getAllVersions` method returning an array of origin objects in a single query
+* francois: [BC Break] Renamed `getAllVersions` to `getAllResourceVersions`
+* francois: [BC Break] Renamed `getLastVersions` to `getLastResourceVersion`
+* francois: [BC Break] Replaced uuid by a simple composite key class name + id
+   </notes>
+    </release>
+    <release>
+      <version>
         <release>0.2.2</release>
         <api>0.2.2</api>
       </version>
@@ -74,6 +103,7 @@
       <date>2008-02-06</date>
       <license uri="http://www.symfony-project.com/license">MIT license</license>
       <notes>
+* francois: Made the doc more explicit about multiple models (fixes #1820)
 * francois: Removed need for hardcoded foreign key (fixes #1562)
 * francois: Switched plugin schema to YAML
 * francois: Made the unit tests more adaptable

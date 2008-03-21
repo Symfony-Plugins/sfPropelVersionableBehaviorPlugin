@@ -416,14 +416,15 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Roadmap ==
 
-=== 0.3 ===
+=== 0.4 ===
 
  * Make plugin compatible with sfPropel's i18n capabilities
+ * Avoid saving unchanged columns and records to savce database space
  * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
 == Changelog ==
 
-=== 2008-03-21 | Trunk ===
+=== 2008-03-21 | 0.3.0 beta ===
 
  * francois: [BC Break] Added a `title` column to the `resource_version` table and support for resource title
  * francois: Added support for related objects versioning (only via `addVersion` for now)
