@@ -86,14 +86,26 @@ class sfPropelVersionableBehavior
    */
   public function getCurrentResourceVersion(BaseObject $resource)
   {
+    return self::getResourceVersion($resource, $resource->getVersion());
+  }
+   
+  /**
+   * Returns given version of resource.
+   * 
+   * @param      BaseObject    $resource
+   * @param      integer       $version
+   * @return     ResourceVersion
+   */
+  public function getResourceVersion(BaseObject $resource, $version = 1)
+  {
     $c = new Criteria();
     $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
     $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
-    $c->add(ResourceVersionPeer::NUMBER, $resource->getVersion());
+    $c->add(ResourceVersionPeer::NUMBER, $version);
     
     return ResourceVersionPeer::doSelectOne($c);
   }
-   
+
   /**
    * Returns all ResourceVersion instances related to the object, ordered by version asc.
    * 
@@ -112,7 +124,7 @@ class sfPropelVersionableBehavior
   }
 
   /**
-   * Returns all ResourceVersion instances related to the object, ordered by version asc.
+   * Returns all versions of a resource, ordered by version asc.
    * 
    * @param      BaseObject   $resource
    * @return     array        List of BaseObject objects
@@ -124,24 +136,25 @@ class sfPropelVersionableBehavior
     $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
     $c->add(ResourceVersionPeer::NUMBER, null, Criteria::ISNOTNULL);
     $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
-    $c->addJoin(ResourceAttributeVersionPeer::RESOURCE_VERSION_ID, ResourceVersionPeer::ID);
-    $attributes = ResourceAttributeVersionPeer::doSelect($c);
+    $c->addJoin(ResourceVersionPeer::ID, ResourceAttributeVersionHashPeer::RESOURCE_VERSION_ID);
+    $attributeHashes = ResourceAttributeVersionHashPeer::doSelectJoinResourceAttributeVersion($c);
     
     $objects = array();
     $object = null;
     $class= get_class($resource);
     $current_id = null;
-    foreach($attributes as $attribute)
+    foreach($attributeHashes as $attributeHash)
     {
-      if($attribute->getResourceVersionId() != $current_id)
+      if($attributeHash->getResourceVersionId() != $current_id)
       {
         if($object)
         {
           $objects[]= $object;
         }
-        $current_id = $attribute->getResourceVersionId();
+        $current_id = $attributeHash->getResourceVersionId();
         $object = new $class;
       }
+      $attribute = $attributeHash->getResourceAttributeVersion();
       $attrib_name = $attribute->getAttributeName();
       $setter = sprintf('set%s', $attrib_name);
       
@@ -307,6 +320,18 @@ class sfPropelVersionableBehavior
     {
       self::incrementVersion($resource);
     }
+    // modified columns array will be reset by the save(), but we need it in the postSave()...
+    // So we save it for later.
+    $modifiedColumns = array();
+    foreach ($resource->getPeer()->getFieldNames() as $attribute_name)
+    {
+      $attribute_colname = $resource->getPeer()->translateFieldName($attribute_name, BasePeer::TYPE_PHPNAME, BasePeer::TYPE_COLNAME);
+      if($resource->isColumnModified($attribute_colname))
+      {
+        $modifiedColumns[] = $attribute_name;
+      }
+    }
+    $resource->versionModifiedColumns = $modifiedColumns;
   }
   
   /**
@@ -336,7 +361,7 @@ class sfPropelVersionableBehavior
     {
       $withObjects = isset($resource->versionWithObjects) ? $resource->versionWithObjects : array();
       $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
-      $resource->resourceVersion->populateFromObject($resource, $withObjects);
+      $resource->resourceVersion->populateFromObject($resource, $withObjects, true, $resource->versionModifiedColumns);
       $resource->resourceVersion->save();
       $resource->resourceVersion = null;
     }
@@ -396,8 +421,8 @@ class sfPropelVersionableBehavior
   /**
    * Returns a resource populated with attribute values of given version.
    * 
-   * @param      BaseObject    $resource
-   * @param      BaseObject    $version
+   * @param      BaseObject          $resource
+   * @param      Resource£Version    $version
    * @return     BaseObject
    */
   public static function populateResourceFromVersion(BaseObject $resource, BaseObject $version)
@@ -479,7 +504,7 @@ class sfPropelVersionableBehavior
    * @param     string      $column
    * @return    string
    */
-  private static function getColumnConstant($resource_class, $column)
+  public static function getColumnConstant($resource_class, $column)
   {
     $columns = sfConfig::get(sprintf('propel_behavior_versionable_%s_columns', $resource_class));
 

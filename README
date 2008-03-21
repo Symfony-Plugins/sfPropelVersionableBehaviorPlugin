@@ -392,6 +392,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `void addVersion(string $updatedBy, string $comment, array $withObjects)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
  * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
  * `ResourceVersion getCurrentResourceVersion()`: Returns the object's current version object
+ * `ResourceVersion getResourceVersion(integer $version_number)`: Returns the object's numbered version object
  * `array getAllResourceVersions()`: Returns all version objects in an array
  * `void setResourceCreatedBy(string $createdBy)`: Defines the author name for the revision
  * `string getResourceCreatedBy()`: Gets the author name for the revision
@@ -419,11 +420,17 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 === 0.4 ===
 
  * Make plugin compatible with sfPropel's i18n capabilities
- * Avoid saving unchanged columns and records to savce database space
  * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
 == Changelog ==
 
+=== 2008-03-21 | Trunk ===
+
+ * francois: Added `ResourceAttributeVersion::getResourceVersions()` method
+ * francois: Added `ResourceVersion::getResourceVersion()` method
+ * francois: Avoid saving unchanged columns and records to save database space
+ * francois: [BC Break] Added a `resource_attribute_version_hash` table, now middle table between versions and attributes
+ 
 === 2008-03-21 | 0.3.0 beta ===
 
  * francois: [BC Break] Added a `title` column to the `resource_version` table and support for resource title

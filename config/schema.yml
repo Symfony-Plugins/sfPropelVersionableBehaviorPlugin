@@ -16,6 +16,10 @@ propel:
 
   resource_attribute_version:
     id:
-    resource_version_id:  { type: integer, size: 11, required: true, foreignTable: resource_version, foreignReference: id, onDelete: cascade }
     attribute_name:       { type: varchar, size: 255, required: true }
     attribute_value:      { type: longvarchar }
+
+  resource_attribute_version_hash:
+    resource_attribute_version_id:  { type: integer, size: 11, required: true, foreignTable: resource_attribute_version, foreignReference: id, onDelete: cascade, primaryKey: true }
+    resource_version_id:  { type: integer, size: 11, required: true, foreignTable: resource_version, foreignReference: id, onDelete: cascade, primaryKey: true }
+    is_modified:          { type: boolean }

@@ -101,7 +101,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(56, new lime_output_color());
+$t = new lime_test(57, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -125,6 +125,17 @@ foreach ($version->getResourceAttributeVersions() as $attrib_version)
 $r->setByName($test_class_title_column, 'V2', BasePeer::TYPE_FIELDNAME);
 $r->save();
 $t->is($r->getByName($test_class_version_column, BasePeer::TYPE_FIELDNAME), 2, 'save() increments the version number');
+
+// Incremental storage
+$t->diag('Incremental storage (do not store unchanged values)');
+$c = new Criteria();
+$c->add(ResourceVersionPeer::RESOURCE_ID, $r->getPrimaryKey());
+$c->add(ResourceVersionPeer::NUMBER, 2);
+$c->addJoin(ResourceVersionPeer::ID, ResourceAttributeVersionHashPeer::RESOURCE_VERSION_ID);
+$c->add(ResourceAttributeVersionHashPeer::IS_MODIFIED, true);
+$c->addJoin(ResourceAttributeVersionHashPeer::RESOURCE_ATTRIBUTE_VERSION_ID, ResourceAttributeVersionPeer::ID);
+// Only 2 columns should be saved during the last save(): the title, and the version of course!
+$t->is(ResourceAttributeVersionPeer::doCount($c), 2, 'Only modified columns are saved');
 
 // getLastResourceVersion() and getCurrentResourceVersion()
 $t->diag('getLastResourceVersion() and getCurrentResourceVersion()');

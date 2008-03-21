@@ -38,6 +38,7 @@
       <dir name="lib">
         <dir name="model">
           <file name="ResourceVersion.php" role="data"/>
+          <file name="ResourceAttributeVersion.php" role="data"/>
         </dir>
         <file name="sfPropelVersionableBehavior.class.php" role="data"/>
         <file name="SfVersionableObjectBuilder.php" role="data"/>

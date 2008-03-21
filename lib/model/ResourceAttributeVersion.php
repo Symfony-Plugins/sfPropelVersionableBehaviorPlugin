@@ -17,4 +17,12 @@
  */ 
 class ResourceAttributeVersion extends BaseResourceAttributeVersion
 {
+  public function getResourceVersions()
+  {
+    $c = new Criteria();
+    $c->add(ResourceAttributeVersionHashPeer::RESOURCE_ATTRIBUTE_VERSION_ID, $this->getId());
+    $c->addJoin(ResourceAttributeVersionHashPeer::RESOURCE_VERSION_ID, ResourceVersionPeer::ID);
+    
+    return ResourceVersionPeer::doSelect($c);
+  }
 }

@@ -37,6 +37,10 @@ sfPropelBehavior::registerMethods('versionable', array (
   ),
   array (
     'sfPropelVersionableBehavior',
+    'getResourceVersion'
+  ),
+  array (
+    'sfPropelVersionableBehavior',
     'setVersion'
   ),
   array (
