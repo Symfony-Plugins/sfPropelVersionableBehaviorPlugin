@@ -383,6 +383,10 @@ class sfPropelVersionableBehavior
   {
     $resourceVersion = new ResourceVersion();
     $resourceVersion->setNumber($resource->getVersion());
+    if($titleGetter = self::forgeMethodName($resource, 'get', 'title'))
+    {
+      $resourceVersion->setTitle($resource->$titleGetter());
+    }
     $resourceVersion->setCreatedBy($createdBy);
     $resourceVersion->setComment($comment);
     
@@ -457,11 +461,15 @@ class sfPropelVersionableBehavior
    */
   private static function forgeMethodName($resource, $prefix, $column)
   {
-    $method_name = sprintf('%s%s', $prefix, 
-                                   $resource->getPeer()->translateFieldName(self::getColumnConstant(get_class($resource), $column), 
-                                                                        BasePeer::TYPE_FIELDNAME, 
-                                                                        BasePeer::TYPE_PHPNAME));
-    return $method_name;
+    $columnName = self::getColumnConstant(get_class($resource), $column);
+    if (in_array($columnName, $resource->getPeer()->getFieldNames(BasePeer::TYPE_FIELDNAME)))
+    {
+      return sprintf('%s%s', $prefix, $resource->getPeer()->translateFieldName($columnName, BasePeer::TYPE_FIELDNAME, BasePeer::TYPE_PHPNAME));
+    }
+    else
+    {
+      return false;
+    }
   }
 
   /**
@@ -473,10 +481,9 @@ class sfPropelVersionableBehavior
    */
   private static function getColumnConstant($resource_class, $column)
   {
-    $conf_directive = sprintf('propel_behavior_versionable_%s_columns', $resource_class);
-    $columns = sfConfig::get($conf_directive);
+    $columns = sfConfig::get(sprintf('propel_behavior_versionable_%s_columns', $resource_class));
 
-    return $columns[$column];    
+    return isset($columns[$column]) ? $columns[$column] : $column;
   }
 
   /**

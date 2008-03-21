@@ -187,6 +187,26 @@ $article->addVersion();
 $article->save(); // article is saved and a new version is created
 }}}
 
+=== Customizing the behavior ===
+
+During initialization, you can define the name of the 'version' column if different from 'version:
+
+{{{
+#!php
+sfPropelBehavior::add('Article', array('versionable' => array('columns' => array(
+  'version'  => 'my_version_column'
+))));
+}}}
+
+If your model contains a 'title' column, the behavior will automatically copy it for reference into its internal `ResourceVersion` objects. But you can specify that the revision object title can come from another column:
+
+{{{
+#!php
+sfPropelBehavior::add('Article', array('versionable' => array('columns' => array(
+  'title'  => 'my_title_column'
+))));
+}}}
+
 === Giving details about each revision ===
 
 For future reference, you probably need to record who edited an object, as well as when and why. While editing your object, you can define an author name and a comment via the `setVersionCreatedBy()` and `setVersionComment()` methods, as follows:
@@ -215,7 +235,8 @@ Details about each revision are available in the object via the `getVersionCreat
 
 foreach ($article->getAllVersions() as $history_article)
 {
-  echo sprintf("Version %d, updated by %s on %s (%s)\n", 
+  echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n", 
+               $history_article->getTitle(),
                $history_article->getVersion(),
                $history_article->getVersionCreatedBy(),
                $history_article->getVersionCreatedAt(),
@@ -226,8 +247,8 @@ foreach ($article->getAllVersions() as $history_article)
 /* 
  * Outputs:
  *
- * Version 1, updated by John Doe on 2008-02-08 09:25:12 (Article Creation)
- * Version 2, updated by John Doe on 2008-02-08 09:25:15 (I didn't like the previous title so much)
+ * 'Original title', Version 1, updated by John Doe on 2008-02-08 09:25:12 (Article Creation)
+ * 'A much better title', Version 2, updated by John Doe on 2008-02-08 09:25:15 (I didn't like the previous title so much)
  */
 }}}
 
@@ -239,7 +260,8 @@ Note: In the above example, the `getAllVersions()` method hydrates a list of `Ar
 
 foreach ($article->getAllResourceVersions() as $resourceVersion)
 {
-   echo sprintf("Version %d, updated by %s on %s (%s)\n", 
+   echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n", 
+                $resourceVersion->getTitle(),
                 $resourceVersion->getNumber(),
                 $resourceVersion->getCreatedBy(),
                 $resourceVersion->getCreatedAt(),
@@ -383,6 +405,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `BaseObject getResourceInstance()`: Returns resource instance populated with attributes from the revision
  * `int getNumber()`: Returns the version number of the object revision
  * `string getCreatedBy()`: Returns the author of the object revision
+ * `string getTitle()`: Returns the title of the object revision
  * `string getComment()`: Returns the comment of the object revision
  * `mixed getCreatedAt(string $format)`: Returns the date of the object revision
 
@@ -400,10 +423,11 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-03-20 | Trunk ===
+=== 2008-03-21 | Trunk ===
 
+ * francois: [BC Break] Added a `title` column to the `resource_version` table and support for resource title
  * francois: Added support for related objects versioning (only via `addVersion` for now)
- * francois: [BC Break] Added a `resource_version_id` column to the `resource_version` column
+ * francois: [BC Break] Added a `resource_version_id` column to the `resource_version` table
  * francois: Fixed error when using 'addVersion' on a new object (primary and foreign keys were not saved)
  * francois: Added `getCurrentResourceVersion`, `setResourceCreatedBy`, `getResourceCreatedBy`, `setResourceComment` and `getResourceComment` methods to the public API
  * francois: Fixed error when trying to add a version to an unsaved object
