@@ -62,6 +62,16 @@ class sfPropelVersionableBehavior
     $resource = self::populateResourceFromVersion($resource, $version);
   }
  
+  public function isLastVersion(BaseObject $resource)
+  {
+    $c = new Criteria();
+    $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
+    $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
+    $c->add(ResourceVersionPeer::NUMBER, $resource->getVersion(), Criteria::GREATER_THAN);
+    
+    return ResourceVersionPeer::doCount($c) > 0 ? false : true;
+  }
+  
   /**
    * Returns last version of resource.
    * 
@@ -112,13 +122,20 @@ class sfPropelVersionableBehavior
    * @param      BaseObject   $resource
    * @return     array        List of ResourceVersion objects
    */
-  public function getAllResourceVersions(BaseObject $resource)
+  public function getAllResourceVersions(BaseObject $resource, $order = 'asc')
   {
     $c = new Criteria();
     $c->add(ResourceVersionPeer::RESOURCE_ID, $resource->getPrimaryKey());
     $c->add(ResourceVersionPeer::RESOURCE_NAME, get_class($resource));
     $c->add(ResourceVersionPeer::NUMBER, null, Criteria::ISNOTNULL);
-    $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    if ($order == 'asc')
+    {
+      $c->addAscendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    }
+    else
+    {
+      $c->addDescendingOrderByColumn(ResourceVersionPeer::NUMBER);
+    }
     
     return ResourceVersionPeer::doSelect($c);
   }

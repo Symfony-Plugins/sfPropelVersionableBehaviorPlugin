@@ -388,6 +388,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
  * `void save()`: Adds a new version to the object version history and increments the `version` property
  * `void delete()`: Deletes the object version history
  * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
+ * `boolean isLastVersion()`: Returns true if the current object is the last available version
  * `array getAllVersions()`: Returns all versions of the object in an ordered array
  * `void addVersion(string $updatedBy, string $comment, array $withObjects)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
  * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
@@ -427,6 +428,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 2008-03-21 | Trunk ===
 
+ * francois: Added `isLastVersion()` method
  * francois: Avoid saving unchanged records to save database space (refs #3150)
  * francois: Added `ResourceAttributeVersion::getResourceVersions()` method
  * francois: Added `ResourceVersion::getResourceVersion()` method

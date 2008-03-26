@@ -21,6 +21,10 @@ sfPropelBehavior::registerMethods('versionable', array (
   ),
   array (
     'sfPropelVersionableBehavior',
+    'isLastVersion'
+  ),
+  array (
+    'sfPropelVersionableBehavior',
     'getAllVersions'
   ),
   array (
