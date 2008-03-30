@@ -218,7 +218,7 @@ class sfPropelVersionableBehavior
     $resource->resourceVersion = self::createResourceVersion($resource, $createdBy, $comment);
     // resourceVersion will be saved in the postSave() method, when the resource has primary and foreign key determined
     
-    if($withObjects)
+    if($withObjects != self::getBehaviorParameter(get_class($resource), 'with', array()))
     {
       $resource->versionWithObjects = $withObjects;
     }
@@ -377,7 +377,7 @@ class sfPropelVersionableBehavior
     }
     if(isset($resource->resourceVersion) && $resource->resourceVersion instanceOf ResourceVersion)
     {
-      $withObjects = isset($resource->versionWithObjects) ? $resource->versionWithObjects : array();
+      $withObjects = isset($resource->versionWithObjects) ? $resource->versionWithObjects : self::getBehaviorParameter(get_class($resource), 'with', array());
       $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
       $resource->resourceVersion->populateFromObject($resource, $withObjects, true, $resource->versionModifiedColumns);
       $resource->resourceVersion->save();
@@ -522,13 +522,28 @@ class sfPropelVersionableBehavior
    * 
    * @param     string      $resource_class
    * @param     string      $column
+   *
    * @return    string
    */
   public static function getColumnConstant($resource_class, $column)
   {
-    $columns = sfConfig::get(sprintf('propel_behavior_versionable_%s_columns', $resource_class));
+    $columns = self::getBehaviorParameter($resource_class, 'columns');
 
     return isset($columns[$column]) ? $columns[$column] : $column;
+  }
+
+  /**
+   * Returns behavior parameter for a given class
+   * 
+   * @param     string      $resource_class
+   * @param     string      $parameter
+   * @param     Mixed       $default           Default value if the parameter was not set during behavior initialization
+   *
+   * @return    string
+   */
+  public static function getBehaviorParameter($resource_class, $parameter, $default = null)
+  {
+    return sfConfig::get(sprintf('propel_behavior_versionable_%s_%s', $resource_class, $parameter), $default);
   }
 
   /**

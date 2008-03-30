@@ -284,26 +284,26 @@ $article->save();
 
 === Versioning Related objects ===
 
-If you use the manual `addVersion()`, you can specify that you want related objects to be versioned together with the main object. For instance, imagine an `Article` model with a many-to-one relationship to a `Category` model:
+You can specify that you want related objects to be versioned together with the main object. For instance, imagine an `Article` model with a many-to-one relationship to a `Category` model:
 
 {{{
 #!php
-<?php
+// Explicitly ask to include the `Category` object in the versioning process
+sfPropelBehavior::add('Article', array('versionable' => array(
+  'with'   => array('Category')
+)));
 
 $article = new Article();
 $article->setTitle('Original title');
 $category = new Category();
 $category->setName('Category1');
 $article->setCategory($category);
-// Explicitly ask to include the `Category` object in the versioning process
-$article->addVersion('author1', 'comment1', array('Category'));
 $article->save();
+
 $article->setTitle('Modified title');
 $category = new Category();
 $category->setName('Category1');
 $article->setCategory($category);
-// Explicitly ask to include the `Category` object in the versioning process
-$article->addVersion('author2', 'comment2', array('Category'));
 $article->save();
 
 $article->toVersion(1);
@@ -312,11 +312,28 @@ $article->toVersion(2);
 echo $article->getCategory()->getName();    // 'Category2'
 }}}
 
+You can choose to include different related objects if you use the `addVersion()` method. Specify which objects to include in the versioning process in an array, and use that array as a third argument of `addVersion()`. For instance, if you didn't add any `with` parameter during the behavior declaration, you can still save the related `Category` objects in the example above by calling, before each `save()`:
+
+{{{
+#!php
+...
+$article->addVersion('author1', 'comment1', array('Category'));
+$article->save();
+...
+$article->addVersion('author2', 'comment2', array('Category'));
+$article->save();
+}}}
+
 The same works for one-to-many relationhips, with a trick. For instance, if the `Article` model can have many `Comments`:
 
 {{{
 #!php
 <?php
+// Explicitly ask to include the `Comment` objects in the versioning process
+// Note that `Comment` is declared as a plural
+sfPropelBehavior::add('Article', array('versionable' => array(
+  'with'   => array('Comments')
+)));
 
 $article = new Article();
 $article->setTitle('Original title');
@@ -326,8 +343,6 @@ $article->addComment($comment1);
 $comment2 = new Comment();
 $comment2->setContent('Comment2');
 $article->addComment($comment2);
-// Explicitly ask to include the `Comment` objects in the versioning process
-$article->addVersion('author1', 'comment1', array('Comments'));
 $article->save();
 
 $article->setTitle('Modified title');
@@ -335,8 +350,6 @@ $comment1->setContent('Comment1 Modified');
 $comment1->save();
 $comment2->setContent('Comment2 Modified');
 $comment2->save();
-// Explicitly ask to include the `Comment` objects in the versioning process
-$article->addVersion('author2', 'comment2', array('Comments'));
 $article->save();
 
 $comments = $article->toVersion(1)->getComments();
@@ -376,8 +389,10 @@ This modification should not affect the rest of your model.
 Alternatively, if you prefer to let the Propel generator modify your `initXXX()` methods automatically for all models, you just need to change one line in your `propel.ini` and rebuild your model:
 
 {{{
-propel.builder.object.class            = plugins.sfPropelVersionableBehaviorPlugin.lib.SfVersionableObjectBuilder
+propel.builder.object.class = plugins.sfPropelVersionableBehaviorPlugin.lib.SfVersionableObjectBuilder
 }}}
+
+Note: If you use the [http://trac.symfony-project.com/wiki/sfPropelAlternativeSchemaPlugin sfPropelAlternativeSchemaPlugin] plugin, you don't need to change the Propel object builder, since the alternative schema's builder includes this modification.
 
 == Public API ==
 
@@ -420,7 +435,6 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 0.4 ===
 
- * Allow the definition of related objects to save during behavior declaration
  * Make plugin compatible with sfPropel's i18n capabilities
  * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
@@ -428,6 +442,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 === 2008-03-30 | Trunk ===
 
+ * francois: Added the ability to declare related objects to save at behavior declaration
  * francois: Fixed `ResourceVersion::getResourceInstance()` creates new objects and saving these objects creates a new row in the resource table (#3229)
  * francois: Added `isLastVersion()` method
  * francois: Avoid saving unchanged records to save database space (refs #3150)
