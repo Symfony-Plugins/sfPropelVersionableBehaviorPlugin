@@ -100,7 +100,10 @@ class ResourceVersion extends BaseResourceVersion
   public function getResourceInstance()
   {
     $resource_name = $this->getResourceName();
-    return sfPropelVersionableBehavior::populateResourceFromVersion(new $resource_name(), $this);
+    $resource = sfPropelVersionableBehavior::populateResourceFromVersion(new $resource_name(), $this);
+    $resource->setNew(false);
+    
+    return $resource;
   }
   
   public function getResourceAttributeVersions()

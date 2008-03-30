@@ -426,12 +426,13 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-03-21 | Trunk ===
+=== 2008-03-30 | Trunk ===
 
+ * francois: Fixed `ResourceVersion::getResourceInstance()` creates new objects and saving these objects creates a new row in the resource table (#3229)
  * francois: Added `isLastVersion()` method
  * francois: Avoid saving unchanged records to save database space (refs #3150)
  * francois: Added `ResourceAttributeVersion::getResourceVersions()` method
- * francois: Added `ResourceVersion::getResourceVersion()` method
+ * francois: Added `ResourceVersion::getResourceAttributeVersions()` method
  * francois: Avoid saving unchanged columns to save database space
  * francois: [BC Break] Added a `resource_attribute_version_hash` table, now middle table between versions and attributes
  

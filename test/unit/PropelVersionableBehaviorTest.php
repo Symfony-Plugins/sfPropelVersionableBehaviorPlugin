@@ -101,7 +101,7 @@ sfPropelBehavior::add($test_class, array('versionable' => array('columns' => arr
   'version'  => $test_class_version_column
 ))));
 
-$t = new lime_test(59, new lime_output_color());
+$t = new lime_test(61, new lime_output_color());
 
 // save()
 $t->diag('save()');
@@ -425,6 +425,21 @@ try
 } catch (Exception $e) {
   $t->fail('save() does not crash when creating a new version if no prior version exists and object is not new');
 }
+
+#3229 Plugin creates new objects when restoring a resource from a resource version
+$r = _create_resource();
+$r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
+$r->save();
+$id1 = $r->getId();
+$version = $r->getCurrentResourceVersion();
+$resource = $version->getResourceInstance();
+$t->is($resource->isNew(), false, 'ResourceVersion::getResourceInstance() does not return a new object');
+$resource->save();
+$t->is($resource->getId(), $id1, 'saving a resource restored by getResourceInstance() does not create a new row');
+
+
+
+
 
 // Helper functions
 
