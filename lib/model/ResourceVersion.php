@@ -23,7 +23,7 @@ class ResourceVersion extends BaseResourceVersion
    * @param      BaseObject    $resource
    * @param      Array         $withObjects      Optional list of object classes to create and attach to the current resource
    */
-  public function populateFromObject(BaseObject $resource, $withObjects = array(), $withVersion = true, $modifiedColumns = array())
+  public function populateFromObject(BaseObject $resource, $withObjects = array(), $withVersion = true)
   {
     if($resource->isNew())
     {
@@ -33,40 +33,38 @@ class ResourceVersion extends BaseResourceVersion
     $this->setResourceName(get_class($resource));
     if($withVersion)
     {
-      $this->setNumber($resource->getVersion());
+      $version = $resource->getVersion();
+      $this->setNumber($version);
+      if($previousResourceVersion = $resource->getResourceVersion($version - 1))
+      {
+        $previousAttributes = $previousResourceVersion->getAttributesArray();
+      }
     }
-    
-    $previousResourceVersion = $withVersion ? $resource->getResourceVersion($resource->getVersion() - 1) : null;
-    $previousResourceAttributeVersions = array();
+    else
+    {
+      $previousResourceVersion = null;
+    }
     foreach ($resource->getPeer()->getFieldNames() as $attribute_name)
     {
-      // For each attribute, we either create a new AttributeVersion, or reference an older one if not modified
-      if(!$previousResourceVersion || in_array($attribute_name, $modifiedColumns))
+      // For each attribute, we either create a new AttributeVersion,
+      // or reference an older one if not modified
+      $getter = sprintf('get%s', $attribute_name);
+      if($previousResourceVersion && $resource->$getter() == $previousAttributes[$attribute_name]['value'])
+      {
+        // Attribute not modified
+        // So we use the attribute from a previous version
+        $attributeVersionId = $previousAttributes[$attribute_name]['id'];
+        $isModified = false;
+      }
+      else
       {
         // First version or modified attribute
-        $getter = sprintf('get%s', $attribute_name);
         $attributeVersion = new ResourceAttributeVersion();
         $attributeVersion->setAttributeName($attribute_name);
         $attributeVersion->setAttributeValue($resource->$getter());
         $attributeVersion->save();
-        
         $attributeVersionId = $attributeVersion->getId();
         $isModified = true;
-      }
-      else
-      {
-        // Attribute not modified
-        // So we use the attribute from a previous version
-        if(!$previousResourceAttributeVersions)
-        {
-          foreach($previousResourceVersion->getResourceAttributeVersions() as $resourceAttributeVersion)
-          {
-            $previousResourceAttributeVersions[$resourceAttributeVersion->getAttributeName()] = $resourceAttributeVersion->getId();
-          }
-        }
-        
-        $attributeVersionId = $previousResourceAttributeVersions[$attribute_name];
-        $isModified = false;
       }
       
       $attributeVersionHash = new ResourceAttributeVersionHash();
@@ -114,7 +112,32 @@ class ResourceVersion extends BaseResourceVersion
     
     return ResourceAttributeVersionPeer::doSelect($c);
   }
+  
+  public function getAttributesArray()
+  {
+    $ret = array();
+    foreach($this->getResourceAttributeVersions() as $attribute)
+    {
+      $ret[$attribute->getAttributeName()] = array(
+        'value' => $attribute->getAttributeValue(),
+        'id'    => $attribute->getId()
+      );
+    }
+    
+    return $ret;
+  }
 
+  public function getAttributeValue($name)
+  {
+    $c = new Criteria();
+    $c->add(ResourceAttributeVersionHashPeer::RESOURCE_VERSION_ID, $this->getId());
+    $c->addJoin(ResourceAttributeVersionHashPeer::RESOURCE_ATTRIBUTE_VERSION_ID, ResourceAttributeVersionPeer::ID);
+    $c->add(ResourceAttributeVersionPeer::ATTRIBUTE_NAME, $name);
+    $attribute = ResourceAttributeVersionPeer::doSelectOne($c);
+
+    return $attribute->getAttributeValue();
+  }
+  
   public function getModifiedResourceAttributeVersions()
   {
     $c = new Criteria();

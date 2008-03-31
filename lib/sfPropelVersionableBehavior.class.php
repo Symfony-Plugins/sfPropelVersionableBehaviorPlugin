@@ -198,7 +198,7 @@ class sfPropelVersionableBehavior
    * @param      string   Optional comment about the revision
    * @param      array    Optional list of related object classes to version together with the main object
    */
-  public function addVersion(BaseObject $resource, $createdBy = '', $comment = '', $withObjects = array())
+  public function addVersion(BaseObject $resource, $createdBy = '', $comment = '', $withObjects = null)
   {
     if (self::versionConditionMet($resource))
     {
@@ -218,7 +218,7 @@ class sfPropelVersionableBehavior
     $resource->resourceVersion = self::createResourceVersion($resource, $createdBy, $comment);
     // resourceVersion will be saved in the postSave() method, when the resource has primary and foreign key determined
     
-    if($withObjects != self::getBehaviorParameter(get_class($resource), 'with', array()))
+    if(is_array($withObjects) && $withObjects != self::getBehaviorParameter(get_class($resource), 'with', array()))
     {
       $resource->versionWithObjects = $withObjects;
     }
@@ -338,18 +338,6 @@ class sfPropelVersionableBehavior
     {
       self::incrementVersion($resource);
     }
-    // modified columns array will be reset by the save(), but we need it in the postSave()...
-    // So we save it for later.
-    $modifiedColumns = array();
-    foreach ($resource->getPeer()->getFieldNames() as $attribute_name)
-    {
-      $attribute_colname = $resource->getPeer()->translateFieldName($attribute_name, BasePeer::TYPE_PHPNAME, BasePeer::TYPE_COLNAME);
-      if($resource->isColumnModified($attribute_colname))
-      {
-        $modifiedColumns[] = $attribute_name;
-      }
-    }
-    $resource->versionModifiedColumns = $modifiedColumns;
   }
   
   /**
@@ -379,11 +367,10 @@ class sfPropelVersionableBehavior
     {
       $withObjects = isset($resource->versionWithObjects) ? $resource->versionWithObjects : self::getBehaviorParameter(get_class($resource), 'with', array());
       $resource->resourceVersion->setResourceId($resource->getPrimaryKey());
-      $resource->resourceVersion->populateFromObject($resource, $withObjects, true, $resource->versionModifiedColumns);
+      $resource->resourceVersion->populateFromObject($resource, $withObjects, true);
       $resource->resourceVersion->save();
       $resource->resourceVersion = null;
     }
-    unset($resource->versionModifiedColumns);
     unset($resource->wasModified);
   }
   

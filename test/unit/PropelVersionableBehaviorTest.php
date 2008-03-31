@@ -401,8 +401,8 @@ $t->is($comments[0]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAM
 $t->is($comments[1]->getByName($test_1_n_content_column, BasePeer::TYPE_FIELDNAME), 'Comment2 modified', 'addVersion() allows to save objects related by a 1-n relationship');
 sfConfig::set('app_sfPropelVersionableBehaviorPlugin_auto_versioning', true);
 
-// #1563 sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found
-$t->diag('#1563 : sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found');
+// #1563 does not create a version if YourClass::versionConditionMet() is not found
+$t->diag('#1563: sfPropelVersionableBehaviorPlugin does not create a version if YourClass::versionConditionMet() is not found');
 
 $r = _create_resource();
 $r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
@@ -413,7 +413,7 @@ $r->save();
 $t->is($r->getLastResourceVersion()->getNumber(), 2, 'save() creates a version even if YourClass::versionConditionMet() is not found');
 
 // #1564 crashes while creating a new version if no prior version exists
-$t->diag('#1564 : sfPropelVersionableBehaviorPlugin crashes while creating a new version if no prior version exists');
+$t->diag('#1564: sfPropelVersionableBehaviorPlugin crashes while creating a new version if no prior version exists');
 
 $r = _create_resource();
 try
@@ -426,7 +426,8 @@ try
   $t->fail('save() does not crash when creating a new version if no prior version exists and object is not new');
 }
 
-#3229 Plugin creates new objects when restoring a resource from a resource version
+// #3229 creates new objects when restoring a resource from a resource version
+$t->diag('#3229: sfPropelVersionableBehaviorPlugin creates new objects when restoring a resource from a resource version');
 $r = _create_resource();
 $r->setByName($test_class_title_column, 'v1', BasePeer::TYPE_FIELDNAME);
 $r->save();

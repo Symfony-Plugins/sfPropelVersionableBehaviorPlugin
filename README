@@ -440,8 +440,9 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-03-30 | Trunk ===
+=== 2008-03-31 | Trunk ===
 
+ * francois: Made incremental storage rely on a real version comparison, rather than the array of modified columns. Fixes modified columns not being saved when using `toVersion`.
  * francois: Added the ability to declare related objects to save at behavior declaration
  * francois: Fixed `ResourceVersion::getResourceInstance()` creates new objects and saving these objects creates a new row in the resource table (#3229)
  * francois: Added `isLastVersion()` method
