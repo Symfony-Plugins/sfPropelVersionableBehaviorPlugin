@@ -93,29 +93,6 @@ $article->toVersion(1); // $article->getTitle() == 'First version of article'
 $article->save(); // $article->getVersion() == 3
 }}}
 
-=== Retrieving a resource version history ===
-
-{{{
-#!php
-<?php
-
-foreach ($article->getAllVersions() as $history_article)
-{
-   echo sprintf("Version %d title : %s\n", 
-                $history_article->getVersion(),
-                $history_article->getTitle()
-                );
-}
-
-/* 
- * Outputs:
- *
- * Version 1 title: First version of article
- * Version 2 title: Second version of article
- * Version 3 title: First version of article
- */
-}}}
-
 === Conditional versioning ===
 
 You may not want to have a new version of resource created each time it is saved.
@@ -226,6 +203,8 @@ $article->setVersionCreatedBy('John Doe');
 $article->setVersionComment('I didn\'t like the previous title so much');
 $article->save();
 }}}
+
+=== Retrieving a resource version history ===
 
 Details about each revision are available in the object via the `getVersionCreatedBy` and `getVersionComment` methods. For instance, if you want to display a history of modifications, you can do as follows:
 
@@ -433,14 +412,16 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Roadmap ==
 
-=== 0.4 ===
+=== 0.5 ===
 
  * Make plugin compatible with sfPropel's i18n capabilities
  * Change the calls to `getPrimaryKey` by calls to a [wiki:sfPropelActAsRatableBehaviorPlugin]-style `getReferenceKey` to allow extending objects with multiple primary keys.
 
 == Changelog ==
 
-=== 2008-03-31 | Trunk ===
+=== 2008-04-05 | Trunk ===
+
+=== 2008-04-05 | 0.4.0 beta ===
 
  * francois: Made incremental storage rely on a real version comparison, rather than the array of modified columns. Fixes modified columns not being saved when using `toVersion`.
  * francois: Added the ability to declare related objects to save at behavior declaration

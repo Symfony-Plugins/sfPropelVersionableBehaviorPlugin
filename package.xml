@@ -16,10 +16,10 @@
     <email>francois.zaninotto@symfony-project.com</email>
     <active>yes</active>
   </developer>
-  <date>2008-03-21</date>
+  <date>2008-04-05</date>
   <version>
-    <release>0.3.0</release>
-    <api>0.3.0</api>
+    <release>0.4.0</release>
+    <api>0.4.0</api>
   </version>
   <stability>
     <release>beta</release>
@@ -63,6 +63,29 @@
   <phprelease>
  </phprelease>
   <changelog>
+    <release>
+      <version>
+        <release>0.4.0</release>
+        <api>0.4.0</api>
+      </version>
+      <stability>
+        <release>beta</release>
+        <api>beta</api>
+      </stability>
+      <date>2008-04-05</date>
+      <license uri="http://www.symfony-project.com/license">MIT license</license>
+      <notes>
+* francois: Made incremental storage rely on a real version comparison, rather than the array of modified columns. Fixes modified columns not being saved when using `toVersion`.
+* francois: Added the ability to declare related objects to save at behavior declaration
+* francois: Fixed `ResourceVersion::getResourceInstance()` creates new objects and saving these objects creates a new row in the resource table (#3229)
+* francois: Added `isLastVersion()` method
+* francois: Avoid saving unchanged records to save database space (refs #3150)
+* francois: Added `ResourceAttributeVersion::getResourceVersions()` method
+* francois: Added `ResourceVersion::getResourceAttributeVersions()` method
+* francois: Avoid saving unchanged columns to save database space
+* francois: [BC Break] Added a `resource_attribute_version_hash` table, now middle table between versions and attributes
+      </notes>
+    </release>
     <release>
       <version>
         <release>0.3.0</release>
