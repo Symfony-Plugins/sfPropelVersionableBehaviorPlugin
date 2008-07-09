@@ -75,4 +75,8 @@ sfPropelBehavior::registerMethods('versionable', array (
     'sfPropelVersionableBehavior',
     'addVersion'
   ),
+  array (
+    'sfPropelVersionableBehavior',
+    'deleteHistory'
+  ),
 ));

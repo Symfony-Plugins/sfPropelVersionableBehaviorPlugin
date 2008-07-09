@@ -324,6 +324,20 @@ class sfPropelVersionableBehavior
     return $resource->getCurrentResourceVersion()->getCreatedAt($format);
   }
   
+  public function deleteHistory(BaseObject $resource, $createdBy = '', $comment = '', $keepOne = true)
+  {
+    $this->postDelete($resource);
+    if($keepOne)
+    {
+      $resource->setVersion(0);
+      if (!self::versionConditionMet($resource))
+      {
+        $resource->addVersion();
+      }
+      $resource->save();
+    }
+  }
+  
 # ---- HOOKS
 
   /**

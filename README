@@ -419,7 +419,9 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 
 == Changelog ==
 
-=== 2008-04-05 | Trunk ===
+=== 2008-07-09 | Trunk ===
+
+ * francois: Added a `deleteHistory()` method to remove unused version records
 
 === 2008-04-05 | 0.4.0 beta ===
 
