@@ -208,22 +208,79 @@ class sfPropelVersionableBehavior
    * @param      BaseObject $resource
    * @param      Integer    $versionFrom
    * @param      Integer    $versionTo
-   * @param      Boolean    $withAttributeId
+   * @param      Integer    $diffType (self::DIFF_COLUMNS (default), self::DIFF_VERSIONS, or self::DIFF_ATTRIBUTES)
+   *
    * @return     Array      Associative array of the columns that changed
    */
-  public static function compare(BaseObject $resource, Integer $versionFrom, Integer $versionTo, $diffType = self::DIFF_COLUMNS)
+  public static function compare(BaseObject $resource, $versionFrom, $versionTo, $diffType = self::DIFF_COLUMNS)
   {
-    $attributesFrom = $resource->getResourceVersion($versionFrom)->getAttributesArray();
-    $attributesTo   = $resource->getResourceVersion($versionTo)->getAttributesArray();
+    $resourceVersionFrom = $resource->getResourceVersion($versionFrom);
+    $resourceVersionTo   = $resource->getResourceVersion($versionTo);
+    
+    return self::compareResources($versionFrom, $resourceVersionFrom, $versionTo, $resourceVersionTo, $diffType);
+  }
+  
+  /**
+   * Returns an array of differences between two resourceVersion objects
+   * Uses recursion for related objects
+   * 
+   * @param      Integer         $versionFrom
+   * @param      ResourceVersion $resourceVersionFrom
+   * @param      Integer         $versionTo
+   * @param      ResourceVersion $resourceVersionTo
+   * @param      Integer    $diffType (self::DIFF_COLUMNS (default), self::DIFF_VERSIONS, or self::DIFF_ATTRIBUTES)
+   *
+   * @return     Array      Associative array of the columns that changed
+   */
+  public static function compareResources($versionFrom, $resourceVersionFrom, $versionTo, $resourceVersionTo, $diffType = self::DIFF_COLUMNS)
+  {
+    // preliminary checks
+    $classFrom = $resourceVersionFrom instanceof ResourceVersion ? $resourceVersionFrom->getResourceName() : null;
+    $classTo   = $resourceVersionTo   instanceof ResourceVersion ? $resourceVersionTo->getResourceName() : null;
+    if(($classFrom != $classTo && !is_null($classFrom) && !is_null($classTo)) || (is_null($classFrom) && is_null($classTo)))
+    {
+      throw new sfException('compareResource() can only compare resources of the same type');
+    }
+    else
+    {
+      $class = is_null($classTo) ? $classFrom : $classTo;
+    }
+
+    // initialization
     $attributeChanges = array();
-    $versionColumn =  $resource->getPeer()->translateFieldName(self::getColumnConstant(get_class($resource), 'version'), BasePeer::TYPE_FIELDNAME, BasePeer::TYPE_PHPNAME);
-    $keys = array_merge(array_keys($attributesFrom), array_keys($attributesTo));
-    foreach ($keys as $key)
+    
+    // columns comparison
+    $attributesFrom = is_null($classFrom) ? array() : $resourceVersionFrom->getAttributesArray();
+    $attributesTo   = is_null($classTo)   ? array() : $resourceVersionTo->getAttributesArray();
+    // do not include the version column
+    try
+    {
+      $tmp = new $class;
+      $versionColumn =  $tmp->getPeer()->translateFieldName(self::getColumnConstant($class, 'version'), BasePeer::TYPE_FIELDNAME, BasePeer::TYPE_PHPNAME);
+    }
+    catch(PropelException $e)
+    {
+      $versionColumn = '';
+    }
+    $keys = array_unique(array_merge(array_keys($attributesFrom), array_keys($attributesTo)));
+    // order keys as they come in the object
+    $orderedKeys = array();
+    foreach($tmp->getPeer()->getFieldNames() as $key)
+    {
+      if(in_array($key, $keys))
+      {
+        $orderedKeys []= $key;
+      }
+    }
+    // check differences for each key
+    foreach ($orderedKeys as $key)
     {
       if($key == $versionColumn) continue;
       $attributeFromId = isset($attributesFrom[$key]) ? $attributesFrom[$key]['id'] : null;
       $attributeToId   = isset($attributesTo[$key]) ? $attributesTo[$key]['id'] : null;
-      if($attributeFromId != $attributeToId)
+      $valueFrom       = is_null($attributeFromId) ? null : $attributesFrom[$key]['value'];
+      $valueTo         = is_null($attributeToId) ? null : $attributesTo[$key]['value'];
+      if($attributeFromId != $attributeToId && $valueFrom != $valueTo)
       {
         switch ($diffType)
         {
@@ -234,14 +291,57 @@ class sfPropelVersionableBehavior
             );
             break;
           case self::DIFF_VERSIONS:
-            $attributeChanges[$versionFrom][$key] = is_null($attributeFromId) ? null : $attributesFrom[$key]['value'];
-            $attributeChanges[$versionTo][$key] = is_null($attributeToId) ? null : $attributesTo[$key]['value'];
+            $attributeChanges[$versionFrom][$key] = $valueFrom;
+            $attributeChanges[$versionTo][$key]   = $valueTo;
             break;
           default:
             $attributeChanges[$key] = array(
-              $versionFrom => is_null($attributeFromId) ? null : $attributesFrom[$key]['value'],
-              $versionTo   => is_null($attributeToId) ? null : $attributesTo[$key]['value']
+              $versionFrom => $valueFrom,
+              $versionTo   => $valueTo
             );
+            break;
+        }
+      }
+    }
+    
+    // related objects comparison
+    $relatedResourceVersionsFrom = is_null($classFrom) ? array() : $resourceVersionFrom->getRelatedResourceVersions();
+    $relatedResourceVersionsTo   = is_null($classTo)   ? array() : $resourceVersionTo->getRelatedResourceVersions();
+    $keys = array_unique(array_merge(
+      array_keys($relatedResourceVersionsFrom),
+      array_keys($relatedResourceVersionsTo)
+    ));
+    foreach ($keys as $key)
+    {
+      $idsFrom = array_key_exists($key, $relatedResourceVersionsFrom) ? array_keys($relatedResourceVersionsFrom[$key]) : array();
+      $idsTo   = array_key_exists($key, $relatedResourceVersionsTo) ? array_keys($relatedResourceVersionsTo[$key]) : array();
+      $ids = array_unique(array_merge($idsFrom, $idsTo));
+      foreach($ids as $id)
+      {
+        $from = array_key_exists($key, $relatedResourceVersionsFrom) ? (array_key_exists($id, $relatedResourceVersionsFrom[$key]) ? $relatedResourceVersionsFrom[$key][$id] : null) : null;
+        $to   = array_key_exists($key, $relatedResourceVersionsTo) ? (array_key_exists($id, $relatedResourceVersionsTo[$key]) ? $relatedResourceVersionsTo[$key][$id] : null) : null;
+        switch ($diffType)
+        {
+          case self::DIFF_ATTRIBUTES:
+          $attributeChanges[] = array(
+            'class' => $key,
+            'diff' => self::compareResources($versionFrom, $from, $versionTo, $to, self::DIFF_ATTRIBUTES));
+            break;
+          case self::DIFF_VERSIONS:
+            $diff = self::compareResources($versionFrom, $from, $versionTo, $to, self::DIFF_VERSIONS);
+            $attributeChanges[$versionFrom][] = array_merge(
+              array('class' => $key),
+              $diff[$versionFrom]
+            );
+            $attributeChanges[$versionTo][] = array_merge(
+              array('class' => $key),
+              $diff[$versionTo]
+            );
+            break;
+          default:
+            $attributeChanges[] = array(
+              'class' => $key,
+              'diff' => self::compareResources($versionFrom, $from, $versionTo, $to, self::DIFF_COLUMNS));
             break;
         }
       }

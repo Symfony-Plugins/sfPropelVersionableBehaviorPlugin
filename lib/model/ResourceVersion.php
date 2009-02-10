@@ -147,5 +147,17 @@ class ResourceVersion extends BaseResourceVersion
     
     return ResourceAttributeVersionPeer::doSelect($c);
   }
+  
+  public function getRelatedResourceVersions()
+  {
+    $ret = array();
+    $relatedResourceVersions = $this->getResourceVersionsRelatedByResourceVersionId();
+    foreach ($relatedResourceVersions as $resourceVersion)
+    {
+      $ret[$resourceVersion->getResourceName()][$resourceVersion->getResourceId()] = $resourceVersion;
+    }
+    
+    return $ret;
+  }
 
 }
