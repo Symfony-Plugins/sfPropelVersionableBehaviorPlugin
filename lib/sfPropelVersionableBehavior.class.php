@@ -189,6 +189,67 @@ class sfPropelVersionableBehavior
     return $objects;
   }
   
+  
+  const 
+    DIFF_COLUMNS    = 0,
+    DIFF_VERSIONS   = 1,
+    DIFF_ATTRIBUTES = 2;
+    
+  /**
+   * Returns an array of differences between two versions of a versioned object
+   * Example:
+   *   // checking the differences between versions 5 and 23 of the $article object
+   *   $differences = $article->compare(5, 23);
+   *   => array(
+   *        'title'       => array(5 => 'Original title', 23 => 'Modified title'),
+   *        'category_id' => array(5 => 3345,             23 => 634),
+   *      );
+   * 
+   * @param      BaseObject $resource
+   * @param      Integer    $versionFrom
+   * @param      Integer    $versionTo
+   * @param      Boolean    $withAttributeId
+   * @return     Array      Associative array of the columns that changed
+   */
+  public static function compare(BaseObject $resource, Integer $versionFrom, Integer $versionTo, $diffType = self::DIFF_COLUMNS)
+  {
+    $attributesFrom = $resource->getResourceVersion($versionFrom)->getAttributesArray();
+    $attributesTo   = $resource->getResourceVersion($versionTo)->getAttributesArray();
+    $attributeChanges = array();
+    $versionColumn =  $resource->getPeer()->translateFieldName(self::getColumnConstant(get_class($resource), 'version'), BasePeer::TYPE_FIELDNAME, BasePeer::TYPE_PHPNAME);
+    $keys = array_merge(array_keys($attributesFrom), array_keys($attributesTo));
+    foreach ($keys as $key)
+    {
+      if($key == $versionColumn) continue;
+      $attributeFromId = isset($attributesFrom[$key]) ? $attributesFrom[$key]['id'] : null;
+      $attributeToId   = isset($attributesTo[$key]) ? $attributesTo[$key]['id'] : null;
+      if($attributeFromId != $attributeToId)
+      {
+        switch ($diffType)
+        {
+          case self::DIFF_ATTRIBUTES:
+            $attributeChanges[$key] = array(
+              $versionFrom => is_null($attributeFromId) ? null : $attributesFrom[$key],
+              $versionTo   => is_null($attributeToId) ? null : $attributesTo[$key]
+            );
+            break;
+          case self::DIFF_VERSIONS:
+            $attributeChanges[$versionFrom][$key] = is_null($attributeFromId) ? null : $attributesFrom[$key]['value'];
+            $attributeChanges[$versionTo][$key] = is_null($attributeToId) ? null : $attributesTo[$key]['value'];
+            break;
+          default:
+            $attributeChanges[$key] = array(
+              $versionFrom => is_null($attributeFromId) ? null : $attributesFrom[$key]['value'],
+              $versionTo   => is_null($attributeToId) ? null : $attributesTo[$key]['value']
+            );
+            break;
+        }
+      }
+    }
+    
+    return $attributeChanges;
+  }
+  
   /**
    * Increments the object's version number (without saving it) and creates a new ResourceVersion record.
    * To be used when versionConditionMet() is false
@@ -247,7 +308,7 @@ class sfPropelVersionableBehavior
   public function setVersion(BaseObject $resource, $version_number)
   {
     $setter = self::forgeMethodName($resource, 'set', 'version');
-    return $resource->$setter($version_number);    
+    return $resource->$setter($version_number);
   }
   
   /**
@@ -442,8 +503,8 @@ class sfPropelVersionableBehavior
   /**
    * Returns a resource populated with attribute values of given version.
    * 
-   * @param      BaseObject          $resource
-   * @param      Resource£Version    $version
+   * @param      BaseObject         $resource
+   * @param      ResourceVersion    $version
    * @return     BaseObject
    */
   public static function populateResourceFromVersion(BaseObject $resource, BaseObject $version)
@@ -497,7 +558,7 @@ class sfPropelVersionableBehavior
     
     return $resource;
   }
-
+  
   /**
    * Returns getter / setter name for requested column.
    * 

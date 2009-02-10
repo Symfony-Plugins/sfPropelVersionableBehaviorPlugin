@@ -64,19 +64,94 @@ Clear the cache
 Usage
 -----
 
-### Reverting to a previous version
+### Automatic version increment
 
     [php]
     $article = new Article();
+    
     $article->setTitle('First version of article');
-    $article->save(); // $article->getVersion() == 1
+    $article->save(); 
+
+    echo $article->getVersion();
+      => 1
 
     $article->setTitle('Second version of article');
-    $article->save(); // $article->getVersion() == 2
+    $article->save();
 
-    $article->toVersion(1); // $article->getTitle() == 'First version of article'
-    $article->save(); // $article->getVersion() == 3
+    echo $article->getVersion();
+      => 2
 
+### Reverting to a previous version
+
+    [php]
+    $article->toVersion(1);
+
+    echo $article->getTitle(); 
+      => 'First version of article'
+
+    // saving a previous version creates a new revision
+    $article->save();
+    echo $article->getVersion();
+      => 3;
+
+### Checking differences between versions
+
+    [php]
+    print_r($article->compare(1, 2));
+      => array(
+        '1' => array('Title' => 'First version of article'),
+        '2' => array('Title' => 'Second version of article')
+      );
+
+### Adding details about each revision
+
+For future reference, you probably need to record who edited an object, as well as when and why. While editing your object, you can define an author name and a comment via the `setVersionCreatedBy()` and `setVersionComment()` methods, as follows:
+
+    [php]
+    $article = new Article();
+    $article->setTitle('Original title');
+    $article->setVersionCreatedBy('John Doe');
+    $article->setVersionComment('Article creation');
+    $article->save();
+
+    $article->setTitle('A much better title');
+    $article->setVersionCreatedBy('John Doe');
+    $article->setVersionComment('I didn\'t like the previous title so much');
+    $article->save();
+
+### Retrieving revision history
+
+Details about each revision are available in the object via the `getVersionCreatedBy` and `getVersionComment` methods. For instance, if you want to display a history of modifications, you can do as follows:
+
+    [php]
+    foreach ($article->getAllVersions() as $history_article)
+    {
+      echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n",
+        $history_article->getTitle(),
+        $history_article->getVersion(),
+        $history_article->getVersionCreatedBy(),
+        $history_article->getVersionCreatedAt(),
+        $history_article->getVersionComment(),
+      );
+    }
+
+      => 'Original title', Version 1, updated by John Doe on 2008-02-08 09:25:12 (Article Creation)
+         'A much better title', Version 2, updated by John Doe on 2008-02-08 09:25:15 (I didn't like the previous title so much)
+
+Note: In the above example, the `getAllVersions()` method hydrates a list of `Article` objects while all you need is information about the revisions alone. A more effective way to do the same thing would consist of manipulating the plugin's internal `ResourceVersion` objects that you can get via `getAllResourceVersions()`:
+
+    [php]
+    foreach ($article->getAllResourceVersions() as $resourceVersion)
+    {
+      echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n", 
+        $resourceVersion->getTitle(),
+        $resourceVersion->getNumber(),
+        $resourceVersion->getCreatedBy(),
+        $resourceVersion->getCreatedAt(),
+        $resourceVersion->getComment(),
+      );
+    }
+        
 ### Conditional versioning
 
 You may not want to have a new version of resource created each time it is saved.
@@ -129,9 +204,17 @@ In this case, you still have the way to manually create a new version of an obje
     $article->addVersion();
     $article->save(); // article is saved and a new version is created
 
+Tip: If you have `auto_versioning` set to off and use the manual `addVersion()` process, you can pass the author of the revision and the comment as parameters to the `addVersion()` method call, as follows:
+
+    [php]
+    $article = new Article();
+    $article->setTitle('Original title');
+    $article->addVersion('John Doe', 'Article creation');
+    $article->save();
+
 ### Customizing the behavior
 
-During initialization, you can define the name of the 'version' column if different from 'version:
+During initialization, you can define the name of the 'version' column if different from `version`:
 
     [php]
     sfPropelBehavior::add('Article', array(
@@ -140,7 +223,7 @@ During initialization, you can define the name of the 'version' column if differ
       )
     ));
 
-If your model contains a 'title' column, the behavior will automatically copy it for reference into its internal `ResourceVersion` objects. But you can specify that the revision object title can come from another column:
+If your model contains a  `title` column, the behavior will automatically copy it for reference into its internal `ResourceVersion` objects. But you can specify that the revision object title can come from another column:
 
     [php]
     sfPropelBehavior::add('Article', array(
@@ -148,67 +231,6 @@ If your model contains a 'title' column, the behavior will automatically copy it
         'columns' => array('title'  => 'my_title_column')
       )
     ));
-
-### Giving details about each revision
-
-For future reference, you probably need to record who edited an object, as well as when and why. While editing your object, you can define an author name and a comment via the `setVersionCreatedBy()` and `setVersionComment()` methods, as follows:
-
-    [php]
-    $article = new Article();
-    $article->setTitle('Original title');
-    $article->setVersionCreatedBy('John Doe');
-    $article->setVersionComment('Article creation');
-    $article->save();
-
-    $article->setTitle('A much better title');
-    $article->setVersionCreatedBy('John Doe');
-    $article->setVersionComment('I didn\'t like the previous title so much');
-    $article->save();
-
-### Retrieving a resource version history
-
-Details about each revision are available in the object via the `getVersionCreatedBy` and `getVersionComment` methods. For instance, if you want to display a history of modifications, you can do as follows:
-
-    [php]
-    foreach ($article->getAllVersions() as $history_article)
-    {
-      echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n",
-        $history_article->getTitle(),
-        $history_article->getVersion(),
-        $history_article->getVersionCreatedBy(),
-        $history_article->getVersionCreatedAt(),
-        $history_article->getVersionComment(),
-      );
-    }
-
-    /* 
-     * Outputs:
-     *
-     * 'Original title', Version 1, updated by John Doe on 2008-02-08 09:25:12 (Article Creation)
-     * 'A much better title', Version 2, updated by John Doe on 2008-02-08 09:25:15 (I didn't like the previous title so much)
-     */
-
-Note: In the above example, the `getAllVersions()` method hydrates a list of `Article` objects while all you need is information about the revisions alone. A more effective way to do the same thing would consist of manipulating the `ResourceVersion` objects that you can get via `getAllResourceVersions()`:
-
-    [php]
-    foreach ($article->getAllResourceVersions() as $resourceVersion)
-    {
-      echo sprintf("'%s', Version %d, updated by %s on %s (%s)\n", 
-        $resourceVersion->getTitle(),
-        $resourceVersion->getNumber(),
-        $resourceVersion->getCreatedBy(),
-        $resourceVersion->getCreatedAt(),
-        $resourceVersion->getComment(),
-      );
-    }
-
-Tip: If you have `auto_versioning` set to off and use the manual `addVersion()` process, you can pass the author of the revision and the comment as parameters to the method call, as follows:
-
-    [php]
-    $article = new Article();
-    $article->setTitle('Original title');
-    $article->addVersion('John Doe', 'Article creation');
-    $article->save();
 
 ### Versioning Related objects
 
@@ -236,9 +258,11 @@ You can specify that you want related objects to be versioned together with the 
     $article->save();
 
     $article->toVersion(1);
-    echo $article->getCategory()->getName();    // 'Category1'
+    echo $article->getCategory()->getName();
+      => 'Category1'
     $article->toVersion(2);
-    echo $article->getCategory()->getName();    // 'Category2'
+    echo $article->getCategory()->getName();
+      => 'Category2'
 
 You can choose to include different related objects if you use the `addVersion()` method. Specify which objects to include in the versioning process in an array, and use that array as a third argument of `addVersion()`. For instance, if you didn't add any `with` parameter during the behavior declaration, you can still save the related `Category` objects in the example above by calling, before each `save()`:
 
@@ -327,6 +351,7 @@ Enabling the behaviors adds / modifies the following method to the Propel object
 * `void toVersion(integer $version_number)`: Populates the properties of the current object with values from the requested version. Beware that saving the object afterwards will create a new version (and not update the previous version).
 * `boolean isLastVersion()`: Returns true if the current object is the last available version
 * `array getAllVersions()`: Returns all versions of the object in an ordered array
+* `array compare(integer $version1, integer $version2)`: Returns an array of differences showing which parts of a resource changed between two versions
 * `void addVersion(string $updatedBy, string $comment, array $withObjects)`: Increments the object's version number (without saving it) and creates a new ResourceVersion record. To be used when versionConditionMet() is false
 * `ResourceVersion getLastResourceVersion()`: Returns the object's last version object
 * `ResourceVersion getCurrentResourceVersion()`: Returns the object's current version object
@@ -365,6 +390,7 @@ Changelog
 
 ### 2009-02-10 | Trunk
 
+* francois: Added a `compare()` method to compare two versions of a given record
 * francois: Wikified README
 * francois: Added a `deleteHistory()` method to remove unused version records
 

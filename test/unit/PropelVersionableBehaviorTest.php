@@ -451,7 +451,7 @@ $t->is($resource->getId(), $id1, 'saving a resource restored by getResourceInsta
  */
 function _create_resource()
 {
-  $classname = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_class', 'Post');
+  $classname = sfConfig::get('app_sfPropelVersionableBehaviorPlugin_test_class', 'Article');
   
   if (!class_exists($classname))
   {
