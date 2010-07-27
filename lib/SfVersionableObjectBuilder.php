@@ -1,6 +1,6 @@
 <?php
 
-require_once sfConfig::get('sf_symfony_lib_dir').'/addon/propel/builder/SfObjectBuilder.php';
+require_once sfConfig::get('sf_symfony_lib_dir').'/plugins/sfPropelPlugin/lib/builder/SfObjectBuilder.php';
 
 class SfVersionableObjectBuilder extends SfObjectBuilder
 {

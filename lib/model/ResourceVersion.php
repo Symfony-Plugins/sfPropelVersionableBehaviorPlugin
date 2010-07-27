@@ -49,7 +49,8 @@ class ResourceVersion extends BaseResourceVersion
       // For each attribute, we either create a new AttributeVersion,
       // or reference an older one if not modified
       $getter = sprintf('get%s', $attribute_name);
-      if($previousResourceVersion && $resource->$getter() == $previousAttributes[$attribute_name]['value'])
+      if($previousResourceVersion && isset($previousAttributes[$attribute_name]) &&
+          $resource->$getter() == $previousAttributes[$attribute_name]['value'])
       {
         // Attribute not modified
         // So we use the attribute from a previous version
